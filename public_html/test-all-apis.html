@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Teste Completo de Edições</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 { color: #ff0; }
+        h2 { color: #0ff; border-bottom: 1px solid #0f0; margin-top: 30px; }
+        .test { background: #001; padding: 15px; margin: 10px 0; border-left: 3px solid #0ff; }
+        .success { background: #030; color: #0f0; padding: 15px; border-left: 3px solid #0f0; }
+        .error { background: #300; color: #f00; padding: 15px; border-left: 3px solid #f00; }
+        .warning { background: #330; color: #ff0; padding: 15px; border-left: 3px solid #ff0; }
+        pre { background: #111; padding: 10px; overflow-x: auto; max-height: 300px; }
+        button {
+            background: #0f0;
+            color: #000;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover { background: #0c0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+    </style>
+</head>
+<body>
+
+<h1>✅ TESTE COMPLETO - Todas as APIs</h1>
+
+<div class="grid">
+    <button onclick="testProducts()">🛍️ Produtos</button>
+    <button onclick="testCategories()">📁 Categorias</button>
+    <button onclick="testSuppliers()">🚚 Fornecedores</button>
+    <button onclick="testUsers()">👥 Usuários</button>
+    <button onclick="testCompanies()">🏢 Empresas</button>
+    <button onclick="testMovements()">📦 Movimentações</button>
+    <button onclick="testAll()">⚡ TESTAR TUDO</button>
+</div>
+
+<div id="results"></div>
+
+<script>
+const API_URL = '/EstoqueGemini/api';
+
+async function testEndpoint(name, endpoint, expectedFields) {
+    const resultsDiv = document.getElementById('results');
+    
+    try {
+        const response = await fetch(`${API_URL}/${endpoint}`);
+        const data = await response.json();
+        
+        let html = `<div class="test">`;
+        html += `<h3>📊 ${name}</h3>`;
+        
+        if (!response.ok) {
+            html += `<div class="error">❌ Status: ${response.status}</div>`;
+            html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            html += '</div>';
+            resultsDiv.innerHTML += html;
+            return false;
+        }
+        
+        if (!Array.isArray(data) || data.length === 0) {
+            html += `<div class="warning">⚠️ Nenhum dado encontrado</div>`;
+            html += '</div>';
+            resultsDiv.innerHTML += html;
+            return true;
+        }
+        
+        const first = data[0];
+        html += `<strong>Total:</strong> ${data.length} registros<br><br>`;
+        
+        // Check types
+        let allCorrect = true;
+        html += '<strong>Verificação de Tipos:</strong><br>';
+        
+        for (const [field, expectedType] of Object.entries(expectedFields)) {
+            if (first.hasOwnProperty(field)) {
+                const actualType = typeof first[field];
+                const isCorrect = actualType === expectedType;
+                const icon = isCorrect ? '✅' : '❌';
+                const color = isCorrect ? '#0f0' : '#f00';
+                
+                html += `<span style="color: ${color}">${icon} ${field}: ${actualType} (esperado: ${expectedType})</span><br>`;
+                
+                if (!isCorrect) allCorrect = false;
+            } else {
+                html += `<span style="color: #f00">❌ Campo "${field}" não existe</span><br>`;
+                allCorrect = false;
+            }
+        }
+        
+        if (allCorrect) {
+            html += '<br><div class="success">✅ TODOS OS TIPOS ESTÃO CORRETOS!</div>';
+        } else {
+            html += '<br><div class="error">❌ TIPOS INCORRETOS - Precisa atualizar api.php!</div>';
+        }
+        
+        html += '<br><strong>Primeiro registro:</strong>';
+        html += `<pre>${JSON.stringify(first, null, 2)}</pre>`;
+        html += '</div>';
+        
+        resultsDiv.innerHTML += html;
+        return allCorrect;
+        
+    } catch (error) {
+        resultsDiv.innerHTML += `
+            <div class="error">
+                <h3>❌ ${name}</h3>
+                <strong>Erro:</strong> ${error.message}
+            </div>
+        `;
+        return false;
+    }
+}
+
+async function testProducts() {
+    document.getElementById('results').innerHTML = '';
+    await testEndpoint('Produtos', 'products', {
+        id: 'number',
+        name: 'string',
+        sku: 'string',
+        categoryId: 'number',
+        supplierId: 'number',
+        price: 'number',
+        stock: 'number',
+        minStock: 'number',
+        imageUrl: 'string'
+    });
+}
+
+async function testCategories() {
+    document.getElementById('results').innerHTML = '';
+    await testEndpoint('Categorias', 'categories', {
+        id: 'number',
+        name: 'string'
+    });
+}
+
+async function testSuppliers() {
+    document.getElementById('results').innerHTML = '';
+    await testEndpoint('Fornecedores', 'suppliers', {
+        id: 'number',
+        name: 'string'
+    });
+}
+
+async function testUsers() {
+    document.getElementById('results').innerHTML = '';
+    await testEndpoint('Usuários', 'users', {
+        id: 'number',
+        name: 'string',
+        email: 'string',
+        role: 'string'
+    });
+}
+
+async function testCompanies() {
+    document.getElementById('results').innerHTML = '';
+    await testEndpoint('Empresas', 'companies', {
+        id: 'number',
+        name: 'string'
+    });
+}
+
+async function testMovements() {
+    document.getElementById('results').innerHTML = '';
+    await testEndpoint('Movimentações', 'stock-movements', {
+        id: 'number',
+        productId: 'number',
+        userId: 'number',
+        type: 'string',
+        quantity: 'number'
+    });
+}
+
+async function testAll() {
+    document.getElementById('results').innerHTML = '<h2>🔄 Testando todas as APIs...</h2>';
+    
+    const tests = [
+        { name: 'Produtos', fn: testProducts },
+        { name: 'Categorias', fn: testCategories },
+        { name: 'Fornecedores', fn: testSuppliers },
+        { name: 'Usuários', fn: testUsers },
+        { name: 'Empresas', fn: testCompanies },
+        { name: 'Movimentações', fn: testMovements }
+    ];
+    
+    let allPassed = true;
+    
+    for (const test of tests) {
+        const passed = await testEndpoint(
+            test.name,
+            test.name === 'Produtos' ? 'products' :
+            test.name === 'Categorias' ? 'categories' :
+            test.name === 'Fornecedores' ? 'suppliers' :
+            test.name === 'Usuários' ? 'users' :
+            test.name === 'Empresas' ? 'companies' :
+            'stock-movements',
+            test.name === 'Produtos' ? { id: 'number', price: 'number', stock: 'number', categoryId: 'number', supplierId: 'number' } :
+            test.name === 'Movimentações' ? { id: 'number', productId: 'number', userId: 'number', quantity: 'number' } :
+            { id: 'number' }
+        );
+        
+        if (!passed) allPassed = false;
+    }
+    
+    const summary = document.createElement('div');
+    summary.className = allPassed ? 'success' : 'error';
+    summary.innerHTML = `<h2>${allPassed ? '✅ TODOS OS TESTES PASSARAM!' : '❌ ALGUNS TESTES FALHARAM'}</h2>`;
+    document.getElementById('results').insertBefore(summary, document.getElementById('results').firstChild);
+}
+</script>
+
+</body>
+</html>

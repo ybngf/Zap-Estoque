@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Update Parcial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #047857;
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #efe;
+            color: #060;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Update Parcial de Produto</h1>
+    
+    <div class="test-section">
+        <h2>Dados Atuais do Produto ID 1</h2>
+        <button onclick="loadProduct()">Carregar Produto</button>
+        <div id="currentData"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Teste 1: Update Apenas do Stock</h2>
+        <p>Enviar apenas: <code>{ stock: 99 }</code></p>
+        <button onclick="testStockOnly()">Testar</button>
+        <div id="stockResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Teste 2: Update Apenas do Price</h2>
+        <p>Enviar apenas: <code>{ price: 123.45 }</code></p>
+        <button onclick="testPriceOnly()">Testar</button>
+        <div id="priceResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Teste 3: Update Completo (todos os campos)</h2>
+        <button onclick="testFullUpdate()">Testar</button>
+        <div id="fullResult"></div>
+    </div>
+
+    <script>
+        const API_URL = '/EstoqueGemini/api';
+        let currentProduct = null;
+
+        async function loadProduct() {
+            const result = document.getElementById('currentData');
+            result.innerHTML = '⏳ Carregando...';
+            
+            try {
+                const response = await fetch(`${API_URL}/products/1`);
+                if (!response.ok) throw new Error('Erro ao buscar produto');
+                
+                currentProduct = await response.json();
+                
+                result.innerHTML = `
+                    <div class="success">✅ Produto carregado!</div>
+                    <table>
+                        <tr><th>Campo</th><th>Valor</th></tr>
+                        <tr><td>ID</td><td>${currentProduct.id}</td></tr>
+                        <tr><td>Name</td><td>${currentProduct.name}</td></tr>
+                        <tr><td>SKU</td><td>${currentProduct.sku}</td></tr>
+                        <tr><td>Category ID</td><td>${currentProduct.categoryId}</td></tr>
+                        <tr><td>Supplier ID</td><td>${currentProduct.supplierId}</td></tr>
+                        <tr><td>Price</td><td>R$ ${currentProduct.price}</td></tr>
+                        <tr><td>Stock</td><td>${currentProduct.stock}</td></tr>
+                        <tr><td>Min Stock</td><td>${currentProduct.minStock}</td></tr>
+                    </table>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+
+        async function testStockOnly() {
+            const result = document.getElementById('stockResult');
+            result.innerHTML = '⏳ Testando update parcial (apenas stock)...';
+            
+            try {
+                // Primeiro carregar o produto atual
+                const before = await fetch(`${API_URL}/products/1`).then(r => r.json());
+                
+                // Fazer update apenas do stock
+                const response = await fetch(`${API_URL}/products/1`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: 99 })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro na requisição');
+                }
+
+                const after = await response.json();
+                
+                // Verificar se os outros campos permaneceram inalterados
+                const fieldsPreserved = 
+                    before.name === after.name &&
+                    before.sku === after.sku &&
+                    before.categoryId === after.categoryId &&
+                    before.supplierId === after.supplierId &&
+                    before.price === after.price &&
+                    before.minStock === after.minStock;
+
+                if (!fieldsPreserved) {
+                    throw new Error('❌ Outros campos foram alterados!');
+                }
+
+                if (after.stock !== 99) {
+                    throw new Error('❌ Stock não foi atualizado corretamente!');
+                }
+
+                result.innerHTML = `
+                    <div class="success">
+                        <h3>✅ SUCESSO! Update parcial funcionou!</h3>
+                        <p><strong>Stock antes:</strong> ${before.stock}</p>
+                        <p><strong>Stock depois:</strong> ${after.stock}</p>
+                        <p>✅ Todos os outros campos permaneceram inalterados</p>
+                    </div>
+                    <details>
+                        <summary>Ver JSON completo</summary>
+                        <pre>${JSON.stringify(after, null, 2)}</pre>
+                    </details>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+                console.error(error);
+            }
+        }
+
+        async function testPriceOnly() {
+            const result = document.getElementById('priceResult');
+            result.innerHTML = '⏳ Testando update parcial (apenas price)...';
+            
+            try {
+                const before = await fetch(`${API_URL}/products/1`).then(r => r.json());
+                
+                const response = await fetch(`${API_URL}/products/1`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ price: 123.45 })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro na requisição');
+                }
+
+                const after = await response.json();
+                
+                if (after.price !== 123.45) {
+                    throw new Error('❌ Price não foi atualizado!');
+                }
+
+                result.innerHTML = `
+                    <div class="success">
+                        <h3>✅ SUCESSO!</h3>
+                        <p><strong>Price antes:</strong> R$ ${before.price}</p>
+                        <p><strong>Price depois:</strong> R$ ${after.price}</p>
+                        <p>✅ Stock permaneceu: ${after.stock}</p>
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+
+        async function testFullUpdate() {
+            const result = document.getElementById('fullResult');
+            result.innerHTML = '⏳ Testando update completo...';
+            
+            try {
+                const response = await fetch(`${API_URL}/products/1`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Produto Teste Atualizado',
+                        sku: 'TEST-001',
+                        categoryId: 1,
+                        supplierId: 1,
+                        price: 99.99,
+                        stock: 50,
+                        minStock: 10
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro na requisição');
+                }
+
+                const data = await response.json();
+                result.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Update completo realizado!</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+
+        // Carregar produto automaticamente ao abrir a página
+        window.onload = loadProduct;
+    </script>
+</body>
+</html>

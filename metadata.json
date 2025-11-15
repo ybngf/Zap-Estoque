@@ -1,0 +1,5 @@
+{
+  "name": "EstoqueVS SaaS - Inventory Control",
+  "description": "A multi-tenant SaaS for advanced inventory management, featuring real-time dashboards, role-based access control, and AI-powered invoice processing to streamline stock movements.",
+  "requestFramePermissions": []
+}

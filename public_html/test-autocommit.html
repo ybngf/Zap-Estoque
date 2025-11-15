@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Autocommit - Estoque Gemini</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 0; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #45a049; }
+        button.danger { background: #f44336; }
+        button.danger:hover { background: #da190b; }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border-left: 4px solid #4CAF50;
+        }
+        .success { color: #4CAF50; font-weight: bold; }
+        .error { color: #f44336; font-weight: bold; }
+        .warning { color: #ff9800; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Teste de Autocommit MySQL</h1>
+    <p>Este teste verifica se as mudanças estão sendo salvas no banco de dados com autocommit.</p>
+
+    <div class="test-section">
+        <h2>Teste 1: Verificar Transação Direta</h2>
+        <button onclick="testTransaction()">Executar Teste de Transação</button>
+        <pre id="transaction-result">Clique no botão para testar...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Teste 2: Atualizar Produto via API</h2>
+        <p>Atualiza o estoque do produto ID 1 para 777 via API</p>
+        <button onclick="testApiUpdate()">Atualizar via API</button>
+        <pre id="api-result">Clique no botão para testar...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Teste 3: Verificar Persistência (Recarregar)</h2>
+        <p>Depois de atualizar, clique aqui para verificar se o valor persiste</p>
+        <button onclick="testPersistence()">Verificar Produto ID 1</button>
+        <pre id="persistence-result">Clique no botão para verificar...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Teste 4: Teste Completo de Ajuste de Estoque</h2>
+        <p>Simula o clique nos botões +/- da interface</p>
+        <button onclick="testStockAdjustment(1)">➕ Adicionar +1</button>
+        <button onclick="testStockAdjustment(-1)" class="danger">➖ Remover -1</button>
+        <pre id="adjustment-result">Clique nos botões para testar...</pre>
+    </div>
+
+    <script>
+        const API_BASE = 'https://www.donasalada.com.br/EstoqueGemini/api';
+
+        async function testTransaction() {
+            const output = document.getElementById('transaction-result');
+            output.textContent = 'Executando teste de transação...';
+            
+            try {
+                const response = await fetch('https://www.donasalada.com.br/EstoqueGemini/test-transaction.php');
+                const text = await response.text();
+                output.textContent = text;
+                
+                if (text.includes('✅ SUCESSO')) {
+                    output.innerHTML = '<span class="success">' + text + '</span>';
+                } else if (text.includes('❌ FALHA')) {
+                    output.innerHTML = '<span class="error">' + text + '</span>';
+                }
+            } catch (error) {
+                output.innerHTML = '<span class="error">ERRO: ' + error.message + '</span>';
+            }
+        }
+
+        async function testApiUpdate() {
+            const output = document.getElementById('api-result');
+            output.textContent = 'Atualizando produto via API...';
+            
+            try {
+                // Get current stock first
+                const getResponse = await fetch(`${API_BASE}/products/1`);
+                const currentProduct = await getResponse.json();
+                
+                output.textContent = `Estoque atual: ${currentProduct.stock}\nAtualizando para 777...\n\n`;
+                
+                // Update to 777
+                const updateResponse = await fetch(`${API_BASE}/products/1`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: 777 })
+                });
+                
+                if (!updateResponse.ok) {
+                    const errorData = await updateResponse.json();
+                    throw new Error(errorData.error || 'Erro desconhecido');
+                }
+                
+                const updatedProduct = await updateResponse.json();
+                
+                // Check again
+                const verifyResponse = await fetch(`${API_BASE}/products/1`);
+                const verifiedProduct = await verifyResponse.json();
+                
+                output.textContent = `Estoque antes: ${currentProduct.stock}\n`;
+                output.textContent += `Resposta da API: ${updatedProduct.stock}\n`;
+                output.textContent += `Verificação imediata: ${verifiedProduct.stock}\n\n`;
+                
+                if (verifiedProduct.stock === 777) {
+                    output.innerHTML += '<span class="success">✅ SUCESSO: Estoque atualizado para 777!</span>\n';
+                    output.innerHTML += '<span class="warning">⚠️ Agora clique em "Verificar Produto ID 1" no Teste 3 para confirmar persistência</span>';
+                } else {
+                    output.innerHTML += '<span class="error">❌ FALHA: Estoque não foi atualizado corretamente!</span>';
+                }
+                
+            } catch (error) {
+                output.innerHTML = '<span class="error">ERRO: ' + error.message + '</span>';
+            }
+        }
+
+        async function testPersistence() {
+            const output = document.getElementById('persistence-result');
+            output.textContent = 'Verificando produto...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/products/1?_=${Date.now()}`); // Cache bust
+                const product = await response.json();
+                
+                output.textContent = `Produto ID: ${product.id}\n`;
+                output.textContent += `Nome: ${product.name}\n`;
+                output.textContent += `Estoque atual: ${product.stock}\n\n`;
+                
+                if (product.stock === 777) {
+                    output.innerHTML += '<span class="success">✅ CONFIRMADO: Valor 777 está persistido no banco!</span>';
+                } else {
+                    output.innerHTML += '<span class="warning">⚠️ Estoque é ${product.stock}, não 777</span>\n';
+                    output.innerHTML += '<span class="error">Se você atualizou para 777 no Teste 2, significa que NÃO foi salvo no banco</span>';
+                }
+                
+            } catch (error) {
+                output.innerHTML = '<span class="error">ERRO: ' + error.message + '</span>';
+            }
+        }
+
+        async function testStockAdjustment(change) {
+            const output = document.getElementById('adjustment-result');
+            output.textContent = `Ajustando estoque (${change > 0 ? '+' : ''}${change})...`;
+            
+            try {
+                // 1. Get current product
+                const getResponse = await fetch(`${API_BASE}/products/1`);
+                const product = await getResponse.json();
+                
+                const oldStock = product.stock;
+                const newStock = oldStock + change;
+                
+                output.textContent = `Estoque atual: ${oldStock}\n`;
+                output.textContent += `Novo estoque: ${newStock}\n\n`;
+                
+                // 2. Update stock
+                const updateResponse = await fetch(`${API_BASE}/products/1`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: newStock })
+                });
+                
+                if (!updateResponse.ok) {
+                    throw new Error('Erro ao atualizar produto');
+                }
+                
+                const updatedProduct = await updateResponse.json();
+                output.textContent += `✅ Produto atualizado: estoque = ${updatedProduct.stock}\n\n`;
+                
+                // 3. Register movement
+                const movementResponse = await fetch(`${API_BASE}/stock-movements`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        productId: 1,
+                        userId: 1, // Assuming user ID 1 exists
+                        type: change > 0 ? 'Entrada' : 'Saída',  // Correto: valores em português
+                        quantity: Math.abs(change),
+                        reason: change > 0 ? 'Teste ajuste - Entrada' : 'Teste ajuste - Saída'
+                    })
+                });
+                
+                if (!movementResponse.ok) {
+                    throw new Error('Erro ao registrar movimentação');
+                }
+                
+                const movement = await movementResponse.json();
+                output.textContent += `✅ Movimentação registrada: ID ${movement.id}\n\n`;
+                
+                // 4. Verify persistence
+                const verifyResponse = await fetch(`${API_BASE}/products/1?_=${Date.now()}`);
+                const verifiedProduct = await verifyResponse.json();
+                
+                output.textContent += `Verificação final: estoque = ${verifiedProduct.stock}\n\n`;
+                
+                if (verifiedProduct.stock === newStock) {
+                    output.innerHTML += '<span class="success">✅ SUCESSO COMPLETO: Estoque ajustado e salvo no banco!</span>';
+                } else {
+                    output.innerHTML += '<span class="error">❌ FALHA: Estoque não foi salvo!</span>\n';
+                    output.innerHTML += `<span class="error">Esperado: ${newStock}, Obtido: ${verifiedProduct.stock}</span>`;
+                }
+                
+            } catch (error) {
+                output.innerHTML += '<span class="error">ERRO: ' + error.message + '</span>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Debug Login - EstoqueGemini</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 { color: #ff0; }
+        h2 { color: #0ff; border-bottom: 1px solid #0f0; margin-top: 30px; }
+        .info { background: #001; padding: 15px; border-left: 3px solid #0ff; margin: 10px 0; }
+        .success { background: #030; color: #0f0; padding: 15px; border-left: 3px solid #0f0; }
+        .error { background: #300; color: #f00; padding: 15px; border-left: 3px solid #f00; }
+        .test-result { background: #111; padding: 10px; margin: 10px 0; border-left: 3px solid #ff0; }
+        pre { background: #111; padding: 10px; overflow-x: auto; }
+        button {
+            background: #0f0;
+            color: #000;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0c0; }
+        input {
+            background: #111;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            width: 300px;
+            font-family: 'Courier New';
+        }
+        label { display: block; margin: 10px 0 5px 0; }
+        .step { background: #002; padding: 15px; margin: 15px 0; border: 1px solid #0ff; }
+        .step-title { color: #ff0; font-weight: bold; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+<h1>🔍 DEBUG DE LOGIN - EstoqueGemini</h1>
+
+<div class="info">
+    <strong>URL Atual:</strong> <span id="currentUrl"></span><br>
+    <strong>Hostname:</strong> <span id="hostname"></span><br>
+    <strong>Pathname:</strong> <span id="pathname"></span><br>
+    <strong>Base Dir Detectado:</strong> <span id="baseDir"></span><br>
+    <strong>API URL Calculada:</strong> <span id="apiUrl"></span>
+</div>
+
+<div class="step">
+    <div class="step-title">PASSO 1: Testar Detecção de Caminho</div>
+    <button onclick="testPathDetection()">▶ Testar Detecção</button>
+    <div id="pathResult"></div>
+</div>
+
+<div class="step">
+    <div class="step-title">PASSO 2: Testar API Health</div>
+    <button onclick="testHealth()">▶ Testar /api/health</button>
+    <div id="healthResult"></div>
+</div>
+
+<div class="step">
+    <div class="step-title">PASSO 3: Testar Login</div>
+    <label>Email:</label>
+    <input type="email" id="email" value="admin@sistema.com">
+    
+    <label>Senha:</label>
+    <input type="password" id="password" value="123456">
+    
+    <br><br>
+    <button onclick="testLogin()">▶ Testar Login</button>
+    <div id="loginResult"></div>
+</div>
+
+<div class="step">
+    <div class="step-title">PASSO 4: Comparação com Super Diagnóstico</div>
+    <button onclick="testDiagnostic()">▶ Verificar super-diagnostico.php</button>
+    <div id="diagnosticResult"></div>
+</div>
+
+<h2>📋 LOG DE REQUISIÇÕES</h2>
+<div id="requestLog"></div>
+
+<script>
+let logEntries = [];
+
+function log(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    const entry = `[${timestamp}] ${message}`;
+    logEntries.push(entry);
+    
+    const logDiv = document.getElementById('requestLog');
+    const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#ff0';
+    logDiv.innerHTML += `<div style="color: ${color}">${entry}</div>`;
+}
+
+// Detectar caminhos
+function getBasePath() {
+    const path = window.location.pathname;
+    log(`Pathname completo: ${path}`, 'info');
+    
+    // Remover index.html ou arquivos .html do final
+    let cleanPath = path.replace(/\/[^\/]+\.html$/, '');
+    
+    log(`Path limpo: ${cleanPath}`, 'info');
+    
+    // Se terminar com /, remover
+    if (cleanPath.endsWith('/')) {
+        cleanPath = cleanPath.slice(0, -1);
+    }
+    
+    log(`Base path final: ${cleanPath || '/'}`, 'info');
+    
+    return cleanPath || '';
+}
+
+function getApiUrl() {
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isDev) {
+        return 'http://localhost:3001/api';
+    }
+    
+    const basePath = getBasePath();
+    const apiUrl = basePath ? `${basePath}/api` : '/api';
+    
+    log(`API URL: ${apiUrl}`, 'success');
+    
+    return apiUrl;
+}
+
+// Inicializar
+window.onload = function() {
+    document.getElementById('currentUrl').textContent = window.location.href;
+    document.getElementById('hostname').textContent = window.location.hostname;
+    document.getElementById('pathname').textContent = window.location.pathname;
+    
+    const basePath = getBasePath();
+    document.getElementById('baseDir').textContent = basePath || '(raiz)';
+    
+    const apiUrl = getApiUrl();
+    document.getElementById('apiUrl').textContent = apiUrl;
+    
+    log('Página carregada', 'success');
+    log(`Hostname: ${window.location.hostname}`, 'info');
+    log(`Path: ${window.location.pathname}`, 'info');
+    log(`Base detectado: ${basePath || '(raiz)'}`, 'info');
+    log(`API URL: ${apiUrl}`, 'success');
+};
+
+function testPathDetection() {
+    const resultDiv = document.getElementById('pathResult');
+    
+    const tests = [
+        { url: 'https://www.donasalada.com.br/EstoqueGemini/', expected: '/EstoqueGemini/api' },
+        { url: 'https://www.donasalada.com.br/EstoqueGemini/index.html', expected: '/EstoqueGemini/api' },
+        { url: 'https://www.donasalada.com.br/', expected: '/api' },
+        { url: 'http://localhost:5173/', expected: 'http://localhost:3001/api' }
+    ];
+    
+    let html = '<div class="test-result">';
+    html += '<strong>Simulação de URLs:</strong><br><br>';
+    
+    tests.forEach(test => {
+        // Simular
+        const url = new URL(test.url);
+        let path = url.pathname;
+        path = path.replace(/\/[^\/]+\.html$/, '');
+        if (path.endsWith('/')) path = path.slice(0, -1);
+        const apiPath = path ? `${path}/api` : '/api';
+        
+        const match = apiPath === test.expected;
+        const color = match ? '#0f0' : '#f00';
+        
+        html += `URL: <code>${test.url}</code><br>`;
+        html += `Path: <code>${path || '(raiz)'}</code><br>`;
+        html += `API: <code style="color: ${color}">${apiPath}</code> `;
+        html += match ? '✅' : `❌ (esperado: ${test.expected})`;
+        html += '<br><br>';
+    });
+    
+    // URL atual
+    const currentPath = getBasePath();
+    const currentApi = getApiUrl();
+    html += '<hr>';
+    html += '<strong style="color: #ff0">URL ATUAL:</strong><br>';
+    html += `Pathname: <code>${window.location.pathname}</code><br>`;
+    html += `Base detectado: <code>${currentPath || '(raiz)'}</code><br>`;
+    html += `API URL: <code style="color: #0f0">${currentApi}</code><br>`;
+    
+    html += '</div>';
+    
+    resultDiv.innerHTML = html;
+    log('Teste de detecção de path concluído', 'success');
+}
+
+async function testHealth() {
+    const resultDiv = document.getElementById('healthResult');
+    const apiUrl = getApiUrl();
+    const healthUrl = `${apiUrl}/health`;
+    
+    resultDiv.innerHTML = '<div class="info">Testando...</div>';
+    log(`Chamando: ${healthUrl}`, 'info');
+    
+    try {
+        const response = await fetch(healthUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        log(`Response status: ${response.status}`, response.ok ? 'success' : 'error');
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            resultDiv.innerHTML = `
+                <div class="success">
+                    ✅ API HEALTH: OK<br><br>
+                    <strong>URL:</strong> ${healthUrl}<br>
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Resposta:</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+            log('Health check: SUCCESS', 'success');
+        } else {
+            resultDiv.innerHTML = `
+                <div class="error">
+                    ❌ API respondeu com erro<br><br>
+                    <strong>URL:</strong> ${healthUrl}<br>
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Resposta:</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+            log(`Health check: FAILED (${response.status})`, 'error');
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="error">
+                ❌ ERRO ao chamar API<br><br>
+                <strong>URL tentada:</strong> ${healthUrl}<br>
+                <strong>Erro:</strong> ${error.message}<br><br>
+                <strong>Possíveis causas:</strong><br>
+                1. .htaccess não está funcionando<br>
+                2. api.php não existe<br>
+                3. Erro CORS<br>
+                4. URL incorreta
+            </div>
+        `;
+        log(`Health check: ERROR - ${error.message}`, 'error');
+    }
+}
+
+async function testLogin() {
+    const resultDiv = document.getElementById('loginResult');
+    const apiUrl = getApiUrl();
+    const loginUrl = `${apiUrl}/auth/login`;
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    const payload = { email, password };
+    
+    resultDiv.innerHTML = '<div class="info">Testando login...</div>';
+    log(`Chamando: ${loginUrl}`, 'info');
+    log(`Payload: ${JSON.stringify(payload)}`, 'info');
+    
+    try {
+        const response = await fetch(loginUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        log(`Response status: ${response.status}`, response.ok ? 'success' : 'error');
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            resultDiv.innerHTML = `
+                <div class="success">
+                    ✅ LOGIN: SUCESSO!<br><br>
+                    <strong>URL:</strong> ${loginUrl}<br>
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Usuário:</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <br>
+                    <strong style="color: #0f0">✅ O SISTEMA ESTÁ FUNCIONANDO!</strong><br>
+                    O problema era a URL da API!
+                </div>
+            `;
+            log('Login: SUCCESS', 'success');
+        } else {
+            resultDiv.innerHTML = `
+                <div class="error">
+                    ❌ LOGIN: FALHOU<br><br>
+                    <strong>URL:</strong> ${loginUrl}<br>
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Email:</strong> ${email}<br>
+                    <strong>Senha:</strong> ${password}<br>
+                    <strong>Resposta:</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <br>
+                    <strong style="color: #ff0">⚠️ ATENÇÃO:</strong><br>
+                    A API está respondendo mas rejeitando as credenciais.<br>
+                    Verifique super-diagnostico.php para ver se o login funciona lá.
+                </div>
+            `;
+            log(`Login: FAILED (${response.status})`, 'error');
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="error">
+                ❌ ERRO ao chamar login<br><br>
+                <strong>URL tentada:</strong> ${loginUrl}<br>
+                <strong>Erro:</strong> ${error.message}<br><br>
+                <strong>🔍 DIAGNÓSTICO:</strong><br>
+                1. Verifique se o health check funciona primeiro<br>
+                2. URL pode estar incorreta<br>
+                3. .htaccess pode não estar configurado
+            </div>
+        `;
+        log(`Login: ERROR - ${error.message}`, 'error');
+    }
+}
+
+async function testDiagnostic() {
+    const resultDiv = document.getElementById('diagnosticResult');
+    const basePath = getBasePath();
+    const diagUrl = basePath ? `${basePath}/test-db.php` : '/test-db.php';
+    
+    resultDiv.innerHTML = '<div class="info">Verificando diagnóstico...</div>';
+    log(`Chamando: ${diagUrl}`, 'info');
+    
+    try {
+        const response = await fetch(diagUrl);
+        const data = await response.json();
+        
+        let html = '<div class="test-result">';
+        html += `<strong>Resultado de test-db.php:</strong><br><br>`;
+        html += `<strong>Conexão:</strong> ${data.connection ? '✅ OK' : '❌ FALHOU'}<br>`;
+        html += `<strong>Tabelas:</strong> ${data.tables ? data.tables.length : 0}<br>`;
+        html += `<strong>Usuários:</strong> ${data.users ? data.users.length : 0}<br>`;
+        
+        if (data.test_login) {
+            html += `<strong>Teste Login:</strong> ${data.test_login.success ? '✅ OK' : '❌ FALHOU'}<br>`;
+            
+            if (data.test_login.success) {
+                html += '<br><strong style="color: #0f0">✅ O BANCO ESTÁ OK!</strong><br>';
+                html += 'Se o login no sistema falha mas aqui passa,<br>';
+                html += 'o problema é na URL da API que o frontend está usando.<br><br>';
+                html += '<strong>SOLUÇÃO:</strong><br>';
+                html += '1. Veja "API URL Calculada" no topo da página<br>';
+                html += '2. Deve ser: ' + getApiUrl() + '<br>';
+                html += '3. Teste o health check acima<br>';
+            }
+        }
+        
+        html += '<br><strong>Dados completos:</strong><br>';
+        html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        html += '</div>';
+        
+        resultDiv.innerHTML = html;
+        log('Diagnóstico verificado', 'success');
+        
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="error">
+                ❌ Erro ao acessar test-db.php<br>
+                ${error.message}
+            </div>
+        `;
+        log(`Diagnóstico: ERROR - ${error.message}`, 'error');
+    }
+}
+</script>
+
+</body>
+</html>

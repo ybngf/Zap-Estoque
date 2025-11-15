@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Direto no Banco MySQL</title>
+    <style>
+        body { font-family: Arial; max-width: 900px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { background: #059669; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 5px; }
+        button:hover { background: #047857; }
+        .error { background: #fee; color: #c00; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { background: #efe; color: #060; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        th { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste Direto - SELECT no Banco</h1>
+    
+    <div class="section">
+        <h2>Query Direta no MySQL</h2>
+        <p>Vamos executar: <code>SELECT * FROM products WHERE id = 1</code></p>
+        <button onclick="queryProduct()">Executar Query</button>
+        <div id="queryResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Verificar Tabela stock_movements</h2>
+        <p>Vamos ver as últimas 5 movimentações criadas</p>
+        <button onclick="queryMovements()">Ver Movimentações</button>
+        <div id="movementsResult"></div>
+    </div>
+
+    <script>
+        const API_URL = '/EstoqueGemini/api';
+
+        async function queryProduct() {
+            const result = document.getElementById('queryResult');
+            result.innerHTML = '⏳ Executando SELECT...';
+            
+            try {
+                const response = await fetch(`${API_URL}/products/1`);
+                const product = await response.json();
+                
+                result.innerHTML = `
+                    <div class="success">✅ SELECT executado com sucesso!</div>
+                    <h3>Resultado:</h3>
+                    <table>
+                        <tr><th>Coluna</th><th>Valor</th><th>Tipo</th></tr>
+                        ${Object.entries(product).map(([key, value]) => `
+                            <tr>
+                                <td><strong>${key}</strong></td>
+                                <td>${value}</td>
+                                <td style="color: #666; font-size: 11px;">${typeof value}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                    <h3>JSON Completo:</h3>
+                    <pre>${JSON.stringify(product, null, 2)}</pre>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+
+        async function queryMovements() {
+            const result = document.getElementById('movementsResult');
+            result.innerHTML = '⏳ Buscando movimentações...';
+            
+            try {
+                const response = await fetch(`${API_URL}/stock-movements`);
+                const movements = await response.json();
+                
+                if (!movements || movements.length === 0) {
+                    result.innerHTML = '<div class="error">❌ Nenhuma movimentação encontrada!</div>';
+                    return;
+                }
+                
+                // Pegar últimas 5
+                const last5 = movements.slice(0, 5);
+                
+                result.innerHTML = `
+                    <div class="success">✅ ${movements.length} movimentação(ões) encontrada(s)</div>
+                    <h3>Últimas 5 Movimentações:</h3>
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Product ID</th>
+                            <th>User ID</th>
+                            <th>Type</th>
+                            <th>Quantity</th>
+                            <th>Reason</th>
+                            <th>Date</th>
+                        </tr>
+                        ${last5.map(m => `
+                            <tr>
+                                <td>${m.id}</td>
+                                <td>${m.productId}</td>
+                                <td style="color: ${m.userId ? 'green' : 'red'}; font-weight: bold;">
+                                    ${m.userId || '❌ NULL'}
+                                </td>
+                                <td>${m.type}</td>
+                                <td>${m.quantity}</td>
+                                <td>${m.reason || '(vazio)'}</td>
+                                <td style="font-size: 11px;">${m.date}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                    <h3>JSON da Última:</h3>
+                    <pre>${JSON.stringify(last5[0], null, 2)}</pre>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

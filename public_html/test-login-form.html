@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login - Estoque Gemini</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-top: 0; }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover { background: #45a049; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Teste de Login</h1>
+        
+        <div class="info">
+            <strong>Credenciais Padrão:</strong><br>
+            Email: admin@estoque.com<br>
+            Senha: admin123
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" value="admin@estoque.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" name="password" value="admin123" required>
+            </div>
+            
+            <button type="submit">Fazer Login</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/api.php';
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '<div class="info">Tentando fazer login...</div>';
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ LOGIN BEM-SUCEDIDO!</strong><br><br>
+                            <strong>Dados do usuário:</strong><br>
+                            ID: ${data.id}<br>
+                            Nome: ${data.name}<br>
+                            Email: ${data.email}<br>
+                            Role: ${data.role}<br>
+                            Empresa: ${data.company}<br><br>
+                            <strong>Agora você pode usar o sistema!</strong><br>
+                            Acesse: <a href="http://localhost:5173" target="_blank">http://localhost:5173</a>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <strong>❌ ERRO AO FAZER LOGIN</strong><br><br>
+                            Status HTTP: ${response.status}<br>
+                            Mensagem: ${data.error || 'Erro desconhecido'}<br><br>
+                            <strong>Verifique:</strong><br>
+                            - Email está correto?<br>
+                            - Senha está correta?<br>
+                            - Usuário existe no banco?
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ ERRO DE CONEXÃO</strong><br><br>
+                        ${error.message}<br><br>
+                        <strong>Verifique:</strong><br>
+                        - Servidor PHP está rodando? (porta 8000)<br>
+                        - MySQL está rodando?<br>
+                        - Banco de dados existe?
+                    </div>
+                `;
+            }
+        });
+        
+        // Auto-submit para teste rápido
+        console.log('Formulário pronto. Clique em "Fazer Login" para testar.');
+    </script>
+</body>
+</html>

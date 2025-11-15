@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Código para Copiar - api.php</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .step h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .step p {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .code-container {
+            position: relative;
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #404040;
+        }
+        .code-title {
+            color: #9ca3af;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .copy-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+        .copy-btn.copied {
+            background: #10b981;
+        }
+        pre {
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin: 0;
+        }
+        .highlight-remove {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 3px solid #ef4444;
+            padding-left: 10px;
+            display: block;
+        }
+        .highlight-add {
+            background: rgba(16, 185, 129, 0.2);
+            border-left: 3px solid #10b981;
+            padding-left: 10px;
+            display: block;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .alert-success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .alert-warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        .alert-error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        ol {
+            margin-left: 20px;
+            color: #4a5568;
+        }
+        ol li {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .btn-primary {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 10px 10px 10px 0;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Corrigir api.php no Servidor</h1>
+            <p>Configure o arquivo para usar config.php centralizado</p>
+        </div>
+        
+        <div class="content">
+            <!-- PASSO 1 -->
+            <div class="step">
+                <h2>📍 Passo 1: Localize o Problema</h2>
+                <p><strong>O problema:</strong> O arquivo <code>api.php</code> no servidor tem as configurações MySQL escritas diretamente nele (hardcoded).</p>
+                <p><strong>A solução:</strong> Fazer o <code>api.php</code> carregar as configurações do <code>config.php</code>.</p>
+            </div>
+
+            <!-- PASSO 2 -->
+            <div class="step">
+                <h2>✏️ Passo 2: Editar api.php no cPanel</h2>
+                <p><strong>Caminho:</strong> cPanel → File Manager → public_html/EstoqueGemini/api.php</p>
+                
+                <div class="alert alert-error">
+                    <strong>❌ REMOVER estas linhas (por volta da linha 18-23):</strong>
+                </div>
+                
+                <div class="code-container">
+                    <div class="code-header">
+                        <span class="code-title">Código ANTIGO (Remover)</span>
+                        <button class="copy-btn" onclick="copyCode('code-remove')">📋 Copiar</button>
+                    </div>
+                    <pre id="code-remove"><span class="highlight-remove">// Database configuration
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'dona_estoqueg');</span></pre>
+                </div>
+
+                <div class="alert alert-success">
+                    <strong>✅ ADICIONAR esta linha no lugar:</strong>
+                </div>
+
+                <div class="code-container">
+                    <div class="code-header">
+                        <span class="code-title">Código NOVO (Adicionar)</span>
+                        <button class="copy-btn" onclick="copyCode('code-add')">📋 Copiar</button>
+                    </div>
+                    <pre id="code-add"><span class="highlight-add">// Load database configuration
+require_once __DIR__ . '/config.php';</span></pre>
+                </div>
+            </div>
+
+            <!-- PASSO 3 -->
+            <div class="step">
+                <h2>📋 Passo 3: Como Fica o Código Completo</h2>
+                <p>Após a edição, o início do <code>api.php</code> deve ficar assim:</p>
+                
+                <div class="code-container">
+                    <div class="code-header">
+                        <span class="code-title">api.php (Linhas 11-25) - Versão CORRETA</span>
+                        <button class="copy-btn" onclick="copyCode('code-complete')">📋 Copiar</button>
+                    </div>
+                    <pre id="code-complete">// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+<span class="highlight-add">// Load database configuration
+require_once __DIR__ . '/config.php';</span>
+
+// Database connection
+$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+
+if ($conn->connect_error) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Database connection failed: ' . $conn->connect_error]);
+    exit();
+}</pre>
+                </div>
+            </div>
+
+            <!-- PASSO 4 -->
+            <div class="step">
+                <h2>✅ Passo 4: Instruções Detalhadas</h2>
+                <ol>
+                    <li>Acesse o <strong>cPanel</strong> do seu servidor</li>
+                    <li>Abra o <strong>File Manager</strong> (Gerenciador de Arquivos)</li>
+                    <li>Navegue até: <code>public_html/EstoqueGemini/</code></li>
+                    <li>Clique com botão direito em <code>api.php</code></li>
+                    <li>Selecione <strong>"Edit"</strong> ou <strong>"Code Editor"</strong></li>
+                    <li>Procure pelas linhas com <code>define('DB_HOST'...</code> (linha ~18-23)</li>
+                    <li><strong>DELETE</strong> as 5 linhas de configuração do banco</li>
+                    <li><strong>ADICIONE</strong> a linha <code>require_once __DIR__ . '/config.php';</code></li>
+                    <li>Clique em <strong>"Save Changes"</strong></li>
+                    <li>Feche o editor</li>
+                </ol>
+            </div>
+
+            <!-- PASSO 5 -->
+            <div class="step">
+                <h2>🧪 Passo 5: Testar</h2>
+                <p>Após salvar, teste imediatamente:</p>
+                
+                <div class="alert alert-success">
+                    <strong>✅ Execute o diagnóstico:</strong><br>
+                    <code>https://www.donasalada.com/EstoqueGemini/diagnostico-online.php</code>
+                </div>
+                
+                <p><strong>Resultado esperado:</strong></p>
+                <ul style="margin-left: 20px; color: #065f46;">
+                    <li>✅ Arquivo config.php encontrado</li>
+                    <li>✅ Conexão com MySQL bem-sucedida</li>
+                    <li>✅ Tabelas listadas corretamente</li>
+                </ul>
+                
+                <div style="margin-top: 20px;">
+                    <a href="https://www.donasalada.com/EstoqueGemini/diagnostico-online.php" class="btn-primary" target="_blank">
+                        🔍 Abrir Diagnóstico
+                    </a>
+                    <a href="https://www.donasalada.com/EstoqueGemini/" class="btn-primary" target="_blank">
+                        🏠 Testar Login
+                    </a>
+                </div>
+            </div>
+
+            <!-- ALTERNATIVA -->
+            <div class="step">
+                <h2>🔄 Alternativa: Re-upload do Arquivo</h2>
+                <p>Se preferir, você pode simplesmente fazer upload do arquivo <code>api.php</code> da sua máquina local (que já está correto):</p>
+                <ol>
+                    <li>No cPanel, vá em <strong>File Manager</strong></li>
+                    <li>Navegue até <code>public_html/EstoqueGemini/</code></li>
+                    <li>Clique em <strong>"Upload"</strong> no topo</li>
+                    <li>Selecione o arquivo <code>api.php</code> do seu computador:<br>
+                        <code>D:\Estoque Gemini\public_html\api.php</code></li>
+                    <li>Confirme para <strong>substituir</strong> o arquivo existente</li>
+                    <li>Aguarde o upload completar</li>
+                    <li>Teste o sistema</li>
+                </ol>
+            </div>
+
+            <!-- DICA IMPORTANTE -->
+            <div class="alert alert-warning">
+                <strong>⚠️ IMPORTANTE:</strong><br>
+                Depois de corrigir o <code>api.php</code>, certifique-se que o <code>config.php</code> está com os dados corretos do MySQL do cPanel (com o prefixo, ex: <code>donasala_</code>).
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyCode(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Encontrar o botão que foi clicado
+                const btn = event.target;
+                const originalText = btn.textContent;
+                
+                // Mudar visual do botão
+                btn.textContent = '✅ Copiado!';
+                btn.classList.add('copied');
+                
+                // Voltar ao normal após 2 segundos
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('Erro ao copiar: ' + err);
+            });
+        }
+    </script>
+</body>
+</html>
