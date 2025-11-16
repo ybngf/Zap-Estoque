@@ -196,6 +196,33 @@ const Users: React.FC<UsersProps> = ({ currentUser }) => {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" 
                 />
               </div>
+              <div>
+                <label htmlFor="avatar" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Avatar (URL da imagem)
+                </label>
+                <input 
+                  type="url" 
+                  name="avatar" 
+                  id="avatar" 
+                  value={newUser.avatar} 
+                  onChange={handleInputChange}
+                  placeholder="https://exemplo.com/avatar.jpg"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                />
+                {newUser.avatar && (
+                  <div className="mt-2 flex items-center space-x-3">
+                    <img 
+                      src={newUser.avatar} 
+                      alt="Preview" 
+                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(newUser.name || 'User') + '&background=10b981&color=fff';
+                      }}
+                    />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Preview do avatar</span>
+                  </div>
+                )}
+              </div>
                <div>
                 <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nível de Acesso</label>
                 <select name="role" id="role" value={newUser.role} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">

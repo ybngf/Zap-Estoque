@@ -28,12 +28,23 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ currentUser }) => {
     message: string;
     onConfirm: () => void;
   } | null>(null);
+  
+  // Bulk category change states
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [targetCategoryId, setTargetCategoryId] = useState<number | null>(null);
+  const [showProductSelector, setShowProductSelector] = useState(false);
+  const [productFilterCategory, setProductFilterCategory] = useState<number | null>(null);
+  const [categoryChangeMessage, setCategoryChangeMessage] = useState<string | null>(null);
+  const [categoryChangeError, setCategoryChangeError] = useState<string | null>(null);
+  const [isProcessingCategoryChange, setIsProcessingCategoryChange] = useState(false);
 
   useEffect(() => {
     // Check if user is Admin or SuperAdmin
     setIsAdmin(currentUser.role === 'Admin' || currentUser.role === 'Super Admin');
     loadSettings();
     loadCategories();
+    loadProducts();
   }, [currentUser]);
 
   const loadCategories = async () => {
@@ -45,6 +56,15 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ currentUser }) => {
     }
   };
 
+  const loadProducts = async () => {
+    try {
+      const data = await api.getProducts();
+      setProducts(data);
+    } catch (err: any) {
+      console.error('Erro ao carregar produtos:', err);
+    }
+  };
+
   const loadSettings = async () => {
     try {
       setIsLoading(true);
@@ -52,11 +72,32 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ currentUser }) => {
       const data = await api.getCompanySettings();
       setSettings(data);
       
-      // Convert to form data
-      const form: Partial<CompanySettings> = {};
+      // Convert to form data with default values for report settings
+      const form: Partial<CompanySettings> = {
+        // Default values for report settings (if not in database)
+        report_email_enabled: '0',
+        report_email_address: '',
+        report_email_frequency: 'daily',
+        report_whatsapp_enabled: '0',
+        report_whatsapp_number: '',
+        report_whatsapp_frequency: 'daily',
+        evolution_api_url: '',
+        evolution_api_key: '',
+        evolution_instance_name: '',
+        // Default values for SMTP settings
+        smtp_host: '',
+        smtp_port: '587',
+        smtp_username: '',
+        smtp_password: '',
+        smtp_from_email: '',
+        smtp_from_name: '',
+        smtp_encryption: 'tls',
+      };
+      
       Object.keys(data).forEach(key => {
         form[key as keyof CompanySettings] = data[key as keyof CompanySettings].value;
       });
+      
       setFormData(form);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar configurações');
@@ -278,6 +319,73 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ currentUser }) => {
           setToolError(err.message || 'Erro ao atualizar fotos');
         } finally {
           setIsProcessingTool(false);
+          setConfirmDialog(null);
+        }
+      }
+    });
+  };
+
+  // Bulk category change handlers
+  const handleProductToggle = (productId: number) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const handleSelectAllProducts = () => {
+    const filteredProducts = productFilterCategory 
+      ? products.filter(p => p.categoryId === productFilterCategory)
+      : products;
+    
+    if (selectedProducts.length === filteredProducts.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(filteredProducts.map(p => p.id));
+    }
+  };
+
+  const handleBulkChangeCategory = () => {
+    // Limpar mensagens anteriores
+    setCategoryChangeError(null);
+    setCategoryChangeMessage(null);
+    
+    if (selectedProducts.length === 0) {
+      setCategoryChangeError('Selecione pelo menos um produto.');
+      return;
+    }
+
+    if (!targetCategoryId) {
+      setCategoryChangeError('Selecione a categoria de destino.');
+      return;
+    }
+
+    const targetCategory = categories.find(c => c.id === targetCategoryId);
+    
+    setConfirmDialog({
+      show: true,
+      action: 'change-category',
+      message: `📦 Mudança de Categoria em Lote\n\n${selectedProducts.length} produto(s) selecionado(s) será(ão) movido(s) para a categoria "${targetCategory?.name}".\n\nDeseja continuar?`,
+      onConfirm: async () => {
+        try {
+          setIsProcessingCategoryChange(true);
+          setCategoryChangeError(null);
+          setCategoryChangeMessage(null);
+          
+          const data = await api.bulkChangeCategory(selectedProducts, targetCategoryId);
+          
+          setCategoryChangeMessage(`✅ ${data.affected} produto(s) movido(s) para "${targetCategory?.name}" com sucesso!`);
+          setSelectedProducts([]);
+          setTargetCategoryId(null);
+          setShowProductSelector(false);
+          
+          // Reload products
+          await loadProducts();
+        } catch (err: any) {
+          setCategoryChangeError(err.message || 'Erro ao mudar categoria');
+        } finally {
+          setIsProcessingCategoryChange(false);
           setConfirmDialog(null);
         }
       }
@@ -631,20 +739,367 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ currentUser }) => {
             </div>
           </div>
 
-          {/* Ferramentas Administrativas */}
-          {isAdmin && (
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-6 border-2 border-red-300 dark:border-red-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="text-3xl">⚠️</div>
+          {/* 6. Relatórios Automáticos */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700 lg:col-span-2">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+              <span>📊</span> Relatórios Automáticos
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Email */}
+              <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">📧</span>
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">Envio por Email</h3>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="report_email_enabled"
+                    name="report_email_enabled"
+                    checked={formData.report_email_enabled === '1'}
+                    onChange={handleInputChange}
+                    disabled={!isAdmin}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <label htmlFor="report_email_enabled" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                    Ativar envio de relatórios por email
+                  </label>
+                </div>
+
                 <div>
-                  <h2 className="text-xl font-semibold text-red-800 dark:text-red-300">
-                    Ferramentas Administrativas
-                  </h2>
-                  <p className="text-sm text-red-600 dark:text-red-400 font-medium">
-                    CUIDADO: Operações irreversíveis que podem apagar dados permanentemente!
+                  <label htmlFor="report_email_address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email para Receber Relatórios
+                  </label>
+                  <input
+                    type="email"
+                    id="report_email_address"
+                    name="report_email_address"
+                    value={formData.report_email_address || ''}
+                    onChange={handleInputChange}
+                    disabled={!isAdmin || formData.report_email_enabled !== '1'}
+                    placeholder="relatorios@empresa.com"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Email que receberá os relatórios automáticos de estoque
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="report_email_frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Frequência de Envio
+                  </label>
+                  <select
+                    id="report_email_frequency"
+                    name="report_email_frequency"
+                    value={formData.report_email_frequency || 'daily'}
+                    onChange={handleInputChange}
+                    disabled={!isAdmin || formData.report_email_enabled !== '1'}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="daily">Diário (todo dia às 08:00)</option>
+                    <option value="weekly">Semanal (segundas-feiras às 08:00)</option>
+                    <option value="monthly">Mensal (dia 1 às 08:00)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* WhatsApp */}
+              <div className="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">📱</span>
+                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">Envio por WhatsApp</h3>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="report_whatsapp_enabled"
+                    name="report_whatsapp_enabled"
+                    checked={formData.report_whatsapp_enabled === '1'}
+                    onChange={handleInputChange}
+                    disabled={!isAdmin}
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <label htmlFor="report_whatsapp_enabled" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                    Ativar envio de relatórios por WhatsApp
+                  </label>
+                </div>
+
+                <div>
+                  <label htmlFor="report_whatsapp_number" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Número do WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    id="report_whatsapp_number"
+                    name="report_whatsapp_number"
+                    value={formData.report_whatsapp_number || ''}
+                    onChange={handleInputChange}
+                    disabled={!isAdmin || formData.report_whatsapp_enabled !== '1'}
+                    placeholder="5511999999999"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Número com código do país e DDD (ex: 5511999999999)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="report_whatsapp_frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Frequência de Envio
+                  </label>
+                  <select
+                    id="report_whatsapp_frequency"
+                    name="report_whatsapp_frequency"
+                    value={formData.report_whatsapp_frequency || 'daily'}
+                    onChange={handleInputChange}
+                    disabled={!isAdmin || formData.report_whatsapp_enabled !== '1'}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="daily">Diário (todo dia às 08:00)</option>
+                    <option value="weekly">Semanal (segundas-feiras às 08:00)</option>
+                    <option value="monthly">Mensal (dia 1 às 08:00)</option>
+                  </select>
+                </div>
+
+                {/* Evolution API Configuration */}
+                <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
+                  <h4 className="text-sm font-semibold text-green-800 dark:text-green-300 mb-3">
+                    Configuração da Evolution API
+                  </h4>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="evolution_api_url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        URL da Evolution API
+                      </label>
+                      <input
+                        type="url"
+                        id="evolution_api_url"
+                        name="evolution_api_url"
+                        value={formData.evolution_api_url || ''}
+                        onChange={handleInputChange}
+                        disabled={!isAdmin}
+                        placeholder="https://sua-evolution-api.com"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="evolution_api_key" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        API Key da Evolution
+                      </label>
+                      <input
+                        type="password"
+                        id="evolution_api_key"
+                        name="evolution_api_key"
+                        value={formData.evolution_api_key || ''}
+                        onChange={handleInputChange}
+                        disabled={!isAdmin}
+                        placeholder="Sua chave de API"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="evolution_instance_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Nome da Instância
+                      </label>
+                      <input
+                        type="text"
+                        id="evolution_instance_name"
+                        name="evolution_instance_name"
+                        value={formData.evolution_instance_name || ''}
+                        onChange={handleInputChange}
+                        disabled={!isAdmin}
+                        placeholder="minha-instancia"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                    ⚠️ Requer integração com API do WhatsApp Business
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Configurações SMTP */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <span>📧</span> Configuração SMTP (Servidor de Email)
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="smtp_host" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Servidor SMTP (Host)
+                    </label>
+                    <input
+                      type="text"
+                      id="smtp_host"
+                      name="smtp_host"
+                      value={formData.smtp_host || ''}
+                      onChange={handleInputChange}
+                      disabled={!isAdmin}
+                      placeholder="smtp.gmail.com"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="smtp_port" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Porta SMTP
+                    </label>
+                    <input
+                      type="number"
+                      id="smtp_port"
+                      name="smtp_port"
+                      value={formData.smtp_port || '587'}
+                      onChange={handleInputChange}
+                      disabled={!isAdmin}
+                      placeholder="587"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="smtp_encryption" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Criptografia
+                    </label>
+                    <select
+                      id="smtp_encryption"
+                      name="smtp_encryption"
+                      value={formData.smtp_encryption || 'tls'}
+                      onChange={handleInputChange}
+                      disabled={!isAdmin}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="tls">TLS (porta 587)</option>
+                      <option value="ssl">SSL (porta 465)</option>
+                      <option value="">Nenhuma</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="smtp_username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Usuário SMTP (Email)
+                    </label>
+                    <input
+                      type="email"
+                      id="smtp_username"
+                      name="smtp_username"
+                      value={formData.smtp_username || ''}
+                      onChange={handleInputChange}
+                      disabled={!isAdmin}
+                      placeholder="seu-email@gmail.com"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="smtp_password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Senha SMTP
+                    </label>
+                    <input
+                      type="password"
+                      id="smtp_password"
+                      name="smtp_password"
+                      value={formData.smtp_password || ''}
+                      onChange={handleInputChange}
+                      disabled={!isAdmin}
+                      placeholder="Senha ou App Password"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="smtp_from_email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email Remetente
+                    </label>
+                    <input
+                      type="email"
+                      id="smtp_from_email"
+                      name="smtp_from_email"
+                      value={formData.smtp_from_email || ''}
+                      onChange={handleInputChange}
+                      disabled={!isAdmin}
+                      placeholder="noreply@donasalada.com.br"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="smtp_from_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Nome do Remetente
+                    </label>
+                    <input
+                      type="text"
+                      id="smtp_from_name"
+                      name="smtp_from_name"
+                      value={formData.smtp_from_name || ''}
+                      onChange={handleInputChange}
+                      disabled={!isAdmin}
+                      placeholder="Sistema de Estoque"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                  <p className="text-xs text-blue-800 dark:text-blue-300 mb-1">
+                    <strong>💡 Dica para Gmail:</strong>
+                  </p>
+                  <ul className="text-xs text-blue-700 dark:text-blue-400 list-disc list-inside space-y-1">
+                    <li>Host: smtp.gmail.com | Porta: 587 | Criptografia: TLS</li>
+                    <li>Use uma "Senha de App" ao invés da senha normal</li>
+                    <li>Gere em: Conta Google → Segurança → Verificação em duas etapas → Senhas de app</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div className="flex items-start gap-3">
+                <span className="text-xl">ℹ️</span>
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  <p className="font-semibold mb-1">O que está incluído nos relatórios:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Resumo do estoque atual (total de produtos, categorias, fornecedores)</li>
+                    <li>Produtos com estoque baixo (abaixo do mínimo configurado)</li>
+                    <li>Produtos sem estoque (quantidade = 0)</li>
+                    <li>Movimentações recentes (entradas e saídas do período)</li>
+                    <li>Valor total do estoque</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid para Ferramentas Administrativas e Mudança de Categoria */}
+          {isAdmin && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:col-span-2">
+              
+              {/* Ferramentas Administrativas */}
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-6 border-2 border-red-300 dark:border-red-700">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-3xl">⚠️</div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-red-800 dark:text-red-300">
+                      Ferramentas Administrativas
+                    </h2>
+                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                      CUIDADO: Operações irreversíveis que podem apagar dados permanentemente!
+                    </p>
+                  </div>
+                </div>
 
               {/* Mensagens de Feedback */}
               {toolMessage && (
@@ -779,6 +1234,162 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ currentUser }) => {
                   <span>Processando...</span>
                 </div>
               )}
+            </div>
+
+          {/* Mudança de Categoria em Lote */}
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-6 border-2 border-green-300 dark:border-green-700">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-3xl">📦🔄</div>
+                <div>
+                  <h2 className="text-xl font-semibold text-green-800 dark:text-green-300">
+                    Mudança de Categoria em Lote
+                  </h2>
+                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                    Selecione produtos e mova-os para outra categoria de uma vez
+                  </p>
+                </div>
+              </div>
+
+              {/* Mensagens de Feedback */}
+              {categoryChangeMessage && (
+                <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-300">
+                  {categoryChangeMessage}
+                </div>
+              )}
+
+              {categoryChangeError && (
+                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300">
+                  ❌ {categoryChangeError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowProductSelector(!showProductSelector)}
+                className="mb-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                {showProductSelector ? '🔽 Ocultar' : '▶️ Mostrar'} Seletor de Produtos
+              </button>
+
+              {showProductSelector && (
+                <div className="space-y-4">
+                  {/* Filtro por categoria */}
+                  <div>
+                    <label className="block text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                      Filtrar produtos por categoria (opcional):
+                    </label>
+                    <select
+                      value={productFilterCategory || ''}
+                      onChange={(e) => setProductFilterCategory(e.target.value ? parseInt(e.target.value) : null)}
+                      className="w-full px-4 py-2 border border-green-300 dark:border-green-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                    >
+                      <option value="">Todas as categorias</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Categoria destino */}
+                  <div>
+                    <label className="block text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                      Mover para a categoria: *
+                    </label>
+                    <select
+                      value={targetCategoryId || ''}
+                      onChange={(e) => setTargetCategoryId(e.target.value ? parseInt(e.target.value) : null)}
+                      className="w-full px-4 py-2 border border-green-300 dark:border-green-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                    >
+                      <option value="">Selecione a categoria destino</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Seleção de produtos */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-green-800 dark:text-green-300">
+                        Selecione os produtos:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleSelectAllProducts}
+                        className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium"
+                      >
+                        {selectedProducts.length === (productFilterCategory 
+                          ? products.filter(p => p.categoryId === productFilterCategory).length 
+                          : products.length) 
+                          ? 'Desmarcar Todos' 
+                          : 'Selecionar Todos'}
+                      </button>
+                    </div>
+
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-3">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        💡 <strong>Produtos selecionados:</strong> {selectedProducts.length}
+                      </p>
+                    </div>
+
+                    <div className="max-h-96 overflow-y-auto p-3 bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-800">
+                      {(productFilterCategory 
+                        ? products.filter(p => p.categoryId === productFilterCategory)
+                        : products
+                      ).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')).map(product => {
+                        const category = categories.find(c => c.id === product.categoryId);
+                        return (
+                          <label
+                            key={product.id}
+                            className="flex items-center gap-3 p-2 rounded hover:bg-green-50 dark:hover:bg-green-900/20 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.includes(product.id)}
+                              onChange={() => handleProductToggle(product.id)}
+                              className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                            />
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {product.name}
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                                (Categoria atual: {category?.name || 'Sem categoria'})
+                              </span>
+                            </div>
+                            <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
+                              Estoque: {product.stock}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Botão de ação */}
+                  <button
+                    type="button"
+                    onClick={handleBulkChangeCategory}
+                    disabled={isProcessingCategoryChange || selectedProducts.length === 0 || !targetCategoryId}
+                    className="w-full p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
+                  >
+                    <span>📦</span>
+                    Mover {selectedProducts.length} Produto(s) para Nova Categoria
+                  </button>
+                </div>
+              )}
+
+              {isProcessingCategoryChange && (
+                <div className="mt-4 flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Processando...</span>
+                </div>
+              )}
+            </div>
+            
             </div>
           )}
 

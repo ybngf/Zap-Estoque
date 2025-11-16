@@ -161,7 +161,9 @@ const Suppliers: React.FC<SuppliersProps> = ({ currentUser }) => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {isLoading ? (
                   <tr><td colSpan={6} className="text-center py-8">Carregando fornecedores...</td></tr>
-              ) : suppliers.map(supplier => {
+              ) : suppliers
+                  .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                  .map(supplier => {
                   const productCount = products.filter(p => p.supplierId === supplier.id).length;
                   return (
                     <tr key={supplier.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">

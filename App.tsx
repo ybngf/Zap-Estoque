@@ -112,6 +112,7 @@ const App: React.FC = () => {
         hasPermission={hasPermission}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        currentUser={currentUser}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { StockMovement, MovementType, User, Product } from '../types';
+import { StockMovement, MovementType, User } from '../types';
 import * as api from '../services/api';
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, ArrowsRightLeftIcon } from './Icons';
 
@@ -17,22 +17,14 @@ const movementTypeConfig: Record<MovementType, { color: string, icon: React.Comp
 
 const StockMovements: React.FC<StockMovementsProps> = ({ currentUser }) => {
   const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [movementsData, productsData, usersData] = await Promise.all([
-          api.getStockMovements(),
-          api.getProducts(),
-          api.getUsers(),
-        ]);
+        const movementsData = await api.getStockMovements();
         setMovements(movementsData);
-        setProducts(productsData);
-        setUsers(usersData);
       } catch (error) {
         console.error('Erro ao carregar movimentações:', error);
       } finally {
@@ -71,14 +63,12 @@ const StockMovements: React.FC<StockMovementsProps> = ({ currentUser }) => {
                 </td>
               </tr>
             ) : movements.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(movement => {
-                const product = products.find(p => p.id === movement.productId);
-                const user = users.find(u => u.id === movement.userId);
                 const config = movementTypeConfig[movement.type];
                 const Icon = config.icon;
                 return (
                     <tr key={movement.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{new Date(movement.date).toLocaleString()}</td>
-                        <td className="py-3 px-4 font-semibold text-gray-800 dark:text-gray-200">{product?.name || 'Produto não encontrado'}</td>
+                        <td className="py-3 px-4 font-semibold text-gray-800 dark:text-gray-200">{movement.productName || 'Produto não encontrado'}</td>
                         <td className={`py-3 px-4 text-center font-semibold ${config.color}`}>
                             <div className="flex items-center justify-center space-x-2">
                                 <Icon className="w-5 h-5"/>
@@ -87,7 +77,7 @@ const StockMovements: React.FC<StockMovementsProps> = ({ currentUser }) => {
                         </td>
                         <td className={`py-3 px-4 text-right font-bold ${config.color}`}>{movement.quantity}</td>
                         <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{movement.reason}</td>
-                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{user?.name || 'Usuário não encontrado'}</td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{movement.userName || 'Sistema'}</td>
                     </tr>
                 )
             })}

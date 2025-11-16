@@ -132,7 +132,9 @@ const Categories: React.FC<CategoriesProps> = ({ currentUser }) => {
             <div className="text-center py-8">Carregando categorias...</div>
         ) : (
             <ul className="space-y-3">
-            {categories.map(category => {
+            {categories
+                .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                .map(category => {
                 const productCount = products.filter(p => p.categoryId === category.id).length;
                 return (
                 <li key={category.id} className="flex justify-between items-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">

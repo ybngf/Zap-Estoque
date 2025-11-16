@@ -976,13 +976,42 @@ function handleCompanies($conn, $method, $id, $input) {
 }
 
 function handleStockMovements($conn, $method, $id, $input) {
+    $currentUser = getCurrentUser($conn);
+    if (!$currentUser) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Não autenticado']);
+        return;
+    }
+    
+    $companyId = $currentUser['company_id'];
+    
     switch ($method) {
         case 'GET':
-            $result = $conn->query("SELECT * FROM stock_movements ORDER BY date DESC");
+            // Filter stock movements by company through products table, including product and user names
+            $stmt = $conn->prepare("
+                SELECT 
+                    sm.*,
+                    p.name as product_name,
+                    u.name as user_name
+                FROM stock_movements sm
+                INNER JOIN products p ON sm.product_id = p.id
+                LEFT JOIN users u ON sm.user_id = u.id
+                WHERE p.company_id = ?
+                ORDER BY sm.date DESC
+            ");
+            $stmt->bind_param("i", $companyId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
             $movements = [];
             while ($row = $result->fetch_assoc()) {
-                $movements[] = formatStockMovement($row);
+                $movement = formatStockMovement($row);
+                // Add product and user names to the movement
+                $movement['productName'] = $row['product_name'];
+                $movement['userName'] = $row['user_name'] ?? 'Sistema';
+                $movements[] = $movement;
             }
+            $stmt->close();
             echo json_encode($movements);
             break;
             
@@ -993,6 +1022,20 @@ function handleStockMovements($conn, $method, $id, $input) {
                 echo json_encode(['error' => 'Campos obrigatórios faltando: productId, type, quantity, userId']);
                 return;
             }
+            
+            // Verificar se o produto pertence à empresa do usuário
+            $checkStmt = $conn->prepare("SELECT id FROM products WHERE id = ? AND company_id = ?");
+            $checkStmt->bind_param("ii", $input['productId'], $companyId);
+            $checkStmt->execute();
+            $checkResult = $checkStmt->get_result();
+            
+            if ($checkResult->num_rows === 0) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Produto não pertence à sua empresa']);
+                $checkStmt->close();
+                return;
+            }
+            $checkStmt->close();
             
             // Se não vier a data, usar a data/hora atual
             $date = isset($input['date']) ? $input['date'] : date('Y-m-d H:i:s');
@@ -1158,12 +1201,12 @@ function handleActivityLog($conn, $method, $id, $input) {
                 $logs[] = [
                     'id' => (int)$row['id'],
                     'userId' => (int)$row['user_id'],
-                    'userName' => $row['user_name'],
-                    'userEmail' => $row['user_email'],
+                    'userName' => $row['user_name'] ?? 'Usuário Desconhecido',
+                    'userEmail' => $row['user_email'] ?? '',
                     'companyId' => (int)$row['company_id'],
-                    'companyName' => $row['company_name'],
-                    'action' => $row['action'],
-                    'entityType' => $row['entity_type'],
+                    'companyName' => $row['company_name'] ?? 'Empresa Desconhecida',
+                    'action' => $row['action'], // INSERT, UPDATE, DELETE
+                    'entityType' => $row['entity_type'], // products, users, etc
                     'entityId' => (int)$row['entity_id'],
                     'oldData' => $row['old_data'] ? json_decode($row['old_data'], true) : null,
                     'newData' => $row['new_data'] ? json_decode($row['new_data'], true) : null,
@@ -1709,8 +1752,11 @@ function handleBulkOperations($conn, $method, $input) {
         return;
     }
 
-    // Check if user is Admin or Super Admin
-    if ($currentUser['role'] !== 'Admin' && $currentUser['role'] !== 'Super Admin') {
+    // Check if user is Admin or Super Admin (case-insensitive and trimmed)
+    $userRole = trim($currentUser['role']);
+    $isAdmin = (strcasecmp($userRole, 'Admin') === 0 || strcasecmp($userRole, 'Super Admin') === 0);
+    
+    if (!$isAdmin) {
         http_response_code(403);
         echo json_encode(['error' => 'Acesso negado. Apenas administradores podem executar operações em massa.']);
         return;
@@ -1724,7 +1770,8 @@ function handleBulkOperations($conn, $method, $input) {
     error_log("Category IDs: " . json_encode($categoryIds));
     error_log("Company ID: $companyId");
 
-    if (empty($categoryIds) || !is_array($categoryIds)) {
+    // Validate categoryIds only for actions that use them (not for 'change-category')
+    if ($action !== 'change-category' && (empty($categoryIds) || !is_array($categoryIds))) {
         http_response_code(400);
         echo json_encode(['error' => 'É necessário selecionar pelo menos uma categoria']);
         return;
@@ -1910,6 +1957,69 @@ function handleBulkOperations($conn, $method, $input) {
                     'message' => 'Imagens atualizadas com sucesso',
                     'updated' => $updated,
                     'skipped' => $skipped
+                ]);
+                break;
+
+            case 'change-category':
+                // Change category for selected products
+                $productIds = $input['productIds'] ?? [];
+                $targetCategoryId = $input['targetCategoryId'] ?? null;
+                
+                error_log("Product IDs: " . json_encode($productIds));
+                error_log("Target Category ID: " . $targetCategoryId);
+                
+                if (empty($productIds) || !is_array($productIds)) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'É necessário selecionar pelo menos um produto']);
+                    return;
+                }
+                
+                if (!$targetCategoryId) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'É necessário selecionar a categoria de destino']);
+                    return;
+                }
+                
+                // Verify that target category exists and belongs to current company
+                $checkCategoryStmt = $conn->prepare("SELECT id FROM categories WHERE id = ? AND company_id = ?");
+                $checkCategoryStmt->bind_param("ii", $targetCategoryId, $companyId);
+                $checkCategoryStmt->execute();
+                $categoryResult = $checkCategoryStmt->get_result();
+                
+                if ($categoryResult->num_rows === 0) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'Categoria de destino inválida']);
+                    return;
+                }
+                $checkCategoryStmt->close();
+                
+                // Update category_id for selected products (only products belonging to current company)
+                $productPlaceholders = implode(',', array_fill(0, count($productIds), '?'));
+                $sql = "UPDATE products 
+                        SET category_id = ? 
+                        WHERE company_id = ? 
+                        AND id IN ($productPlaceholders)";
+                
+                $stmt = $conn->prepare($sql);
+                $types = 'ii' . str_repeat('i', count($productIds));
+                $params = array_merge([$targetCategoryId, $companyId], $productIds);
+                $stmt->bind_param($types, ...$params);
+                $stmt->execute();
+                $affected = $stmt->affected_rows;
+                $stmt->close();
+
+                // Log activity
+                logActivity($conn, $currentUser, 'UPDATE', 'products', 0, null, [
+                    'action' => 'bulk_change_category',
+                    'product_ids' => $productIds,
+                    'target_category_id' => $targetCategoryId,
+                    'affected_rows' => $affected
+                ]);
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Categoria alterada com sucesso',
+                    'affected' => $affected
                 ]);
                 break;
 

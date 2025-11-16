@@ -1,0 +1,108 @@
+═══════════════════════════════════════════════════════════════
+📦 ARQUIVOS PARA COPIAR AO SERVIDOR DE PRODUÇÃO
+═══════════════════════════════════════════════════════════════
+
+✅ ESTRUTURA COMPLETA (5 arquivos):
+
+public_html/
+├── .htaccess                      (Rewrite rules - IMPORTANTE!)
+├── api.php                        (Backend API - 2209 linhas)
+├── config.php                     (⚠️ EDITAR ANTES DE ENVIAR!)
+├── index.html                     (Frontend - 912 bytes)
+└── assets/
+    └── index-DXxAxxDB.js         (JavaScript - 951 KB)
+
+═══════════════════════════════════════════════════════════════
+⚠️ ANTES DE ENVIAR - EDITAR config.php
+═══════════════════════════════════════════════════════════════
+
+Abra: public_html/config.php
+
+Altere estas linhas:
+
+define('DB_HOST', 'localhost');           // ✅ Geralmente é localhost
+define('DB_USER', 'SEU_USUARIO_MYSQL');   // ⚠️ MUDAR!
+define('DB_PASS', 'SUA_SENHA_MYSQL');     // ⚠️ MUDAR!
+define('DB_NAME', 'SEU_DATABASE_NAME');   // ⚠️ MUDAR!
+
+═══════════════════════════════════════════════════════════════
+🚀 COMO ENVIAR PARA O SERVIDOR
+═══════════════════════════════════════════════════════════════
+
+OPÇÃO 1 - Via FTP/SFTP (FileZilla, WinSCP):
+1. Conectar ao servidor
+2. Navegar até public_html (ou raiz do site)
+3. Arrastar todos os 5 itens acima
+4. Confirmar sobrescrita se existirem
+
+OPÇÃO 2 - Via cPanel File Manager:
+1. Login no cPanel
+2. File Manager → public_html
+3. Upload dos arquivos
+4. Extrair se enviou .zip
+
+OPÇÃO 3 - Via Terminal/SSH:
+scp -r public_html/* usuario@servidor:/caminho/public_html/
+
+═══════════════════════════════════════════════════════════════
+✅ CHECKLIST APÓS ENVIO
+═══════════════════════════════════════════════════════════════
+
+[ ] 1. Arquivos enviados corretamente
+[ ] 2. config.php editado com credenciais corretas
+[ ] 3. Banco de dados criado no cPanel
+[ ] 4. Usuário MySQL criado e vinculado ao banco
+[ ] 5. Permissões corretas nos arquivos
+[ ] 6. Teste: https://seusite.com/api/health
+[ ] 7. Teste: Fazer login no sistema
+[ ] 8. Verificar console do navegador (F12) - sem erros
+
+═══════════════════════════════════════════════════════════════
+🐛 SE A PÁGINA FICAR EM BRANCO
+═══════════════════════════════════════════════════════════════
+
+1. Pressione F12 (Console do navegador)
+2. Veja se há erros em vermelho
+3. Erros comuns:
+
+   ❌ "Failed to fetch" 
+   → Problema: API não está respondendo
+   → Solução: Verifique config.php e .htaccess
+
+   ❌ "404 Not Found - index-DXxAxxDB.js"
+   → Problema: Arquivo JS não foi enviado
+   → Solução: Reenvie a pasta assets/
+
+   ❌ "CORS error"
+   → Problema: Cabeçalhos não configurados
+   → Solução: Verifique se .htaccess está correto
+
+   ❌ "Database connection failed"
+   → Problema: Credenciais incorretas em config.php
+   → Solução: Revise DB_USER, DB_PASS, DB_NAME
+
+═══════════════════════════════════════════════════════════════
+📞 COMANDOS DE TESTE
+═══════════════════════════════════════════════════════════════
+
+1. Testar API:
+   https://seusite.com/api/health
+   Deve retornar: {"status":"ok","message":"Server is running"}
+
+2. Testar conexão com banco (criar test-db.php):
+   Veja instruções em DEPLOY-PRODUCTION.md
+
+═══════════════════════════════════════════════════════════════
+🔒 SEGURANÇA
+═══════════════════════════════════════════════════════════════
+
+✅ config.php já está configurado para NÃO mostrar erros
+✅ .htaccess já tem headers de segurança
+⚠️ NUNCA commite config.php com senhas reais no GitHub
+⚠️ Use HTTPS em produção (SSL/TLS)
+
+═══════════════════════════════════════════════════════════════
+
+Última atualização: 15/11/2025
+Versão: 1.0.0
+Build: index-DXxAxxDB.js (951 KB)

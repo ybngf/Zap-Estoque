@@ -18,6 +18,10 @@ const ActivityLogComponent: React.FC<Props> = ({ currentUser }) => {
   const [filterUser, setFilterUser] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+
   useEffect(() => {
     loadLogs();
   }, []);
@@ -25,6 +29,10 @@ const ActivityLogComponent: React.FC<Props> = ({ currentUser }) => {
   useEffect(() => {
     applyFilters();
   }, [logs, filterAction, filterEntity, filterUser, filterDate]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [filterAction, filterEntity, filterUser, filterDate, itemsPerPage]);
 
   const loadLogs = async () => {
     try {
@@ -111,6 +119,16 @@ const ActivityLogComponent: React.FC<Props> = ({ currentUser }) => {
     return { id: userId, name: log?.userName || 'Desconhecido' };
   });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
   const renderDataDiff = (log: ActivityLog) => {
     if (!log.oldData && !log.newData) return null;
 
@@ -190,7 +208,7 @@ const ActivityLogComponent: React.FC<Props> = ({ currentUser }) => {
           <h2 className="font-semibold text-gray-700">Filtros</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Ação
@@ -254,6 +272,22 @@ const ActivityLogComponent: React.FC<Props> = ({ currentUser }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Itens por Página
+            </label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={150}>150</option>
+              <option value={200}>200</option>
+            </select>
+          </div>
         </div>
 
         {(filterAction !== 'all' || filterEntity !== 'all' || filterUser !== 'all' || filterDate) && (
@@ -301,14 +335,14 @@ const ActivityLogComponent: React.FC<Props> = ({ currentUser }) => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredLogs.length === 0 ? (
+              {paginatedLogs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                     Nenhum registro encontrado
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log) => (
+                paginatedLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatDate(log.createdAt)}
@@ -356,6 +390,83 @@ const ActivityLogComponent: React.FC<Props> = ({ currentUser }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Mostrando {startIndex + 1} a {Math.min(endIndex, filteredLogs.length)} de {filteredLogs.length} registros
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goToPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Primeira página"
+              >
+                ««
+              </button>
+              
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Página anterior"
+              >
+                «
+              </button>
+
+              {/* Page numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => goToPage(pageNum)}
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Próxima página"
+              >
+                »
+              </button>
+              
+              <button
+                onClick={() => goToPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Última página"
+              >
+                »»
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Details Modal */}

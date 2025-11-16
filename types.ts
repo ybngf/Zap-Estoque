@@ -65,6 +65,8 @@ export interface StockMovement {
   reason: string;
   date: string;
   userId: number;
+  productName?: string; // Added by backend JOIN
+  userName?: string;    // Added by backend JOIN
 }
 
 export enum ActivityAction {
@@ -139,6 +141,22 @@ export interface CompanySettings {
   company_email: string;
   company_website: string;
   company_tax_id: string;
+  report_email_enabled: string;
+  report_email_address: string;
+  report_email_frequency: string;
+  report_whatsapp_enabled: string;
+  report_whatsapp_number: string;
+  report_whatsapp_frequency: string;
+  evolution_api_url: string;
+  evolution_api_key: string;
+  evolution_instance_name: string;
+  smtp_host: string;
+  smtp_port: string;
+  smtp_username: string;
+  smtp_password: string;
+  smtp_from_email: string;
+  smtp_from_name: string;
+  smtp_encryption: string;
 }
 
 export interface CompanySettingItem {

@@ -287,6 +287,13 @@ export const bulkUpdateImages = async (categoryIds: number[]): Promise<{success:
     });
 };
 
+export const bulkChangeCategory = async (productIds: number[], targetCategoryId: number): Promise<{success: boolean, message: string, affected: number}> => {
+    return apiRequest('/bulk-operations', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'change-category', productIds, targetCategoryId }),
+    });
+};
+
 // Critical Activity Report functions
 export const getCriticalActivities = async (filters?: {
     startDate?: string;

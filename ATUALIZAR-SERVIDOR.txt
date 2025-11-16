@@ -1,0 +1,100 @@
+═══════════════════════════════════════════════════════════════
+🔄 ATUALIZAÇÃO DO SERVIDOR - LOGO DA EMPRESA
+═══════════════════════════════════════════════════════════════
+
+📦 ARQUIVOS ATUALIZADOS:
+
+1. public_html/api.php
+   - Corrigido retorno da API de Activity Log (snake_case)
+   - Valores padrão para usuário/empresa não encontrados
+
+2. public_html/assets/index-BLj1zvQV.js (NOVO)
+   - Sidebar agora mostra logo da empresa do usuário
+   - Super Admin vê logo do sistema
+   - Admins veem logo da sua empresa
+
+3. public_html/index.html
+   - Atualizado para carregar index-BLj1zvQV.js
+
+═══════════════════════════════════════════════════════════════
+🚀 COMO ATUALIZAR O SERVIDOR
+═══════════════════════════════════════════════════════════════
+
+OPÇÃO 1 - Substituir Todos os Arquivos:
+1. Deletar arquivos antigos no servidor
+2. Copiar todos os arquivos de public_html/
+3. Editar config.php com credenciais corretas
+
+OPÇÃO 2 - Atualizar Apenas os Modificados:
+1. Substituir: api.php
+2. Substituir: index.html
+3. Substituir: assets/index-BLj1zvQV.js
+4. Deletar: assets/index-DXxAxxDB.js (arquivo antigo)
+
+═══════════════════════════════════════════════════════════════
+✨ NOVA FUNCIONALIDADE
+═══════════════════════════════════════════════════════════════
+
+LOGO DA EMPRESA NO MENU LATERAL:
+
+✅ Para usuários normais (Admin, Manager, Employee):
+   - O menu lateral mostra o LOGO DA EMPRESA
+   - Configurado em: Configurações → Logo da Empresa
+   - Campo: company_logo_url
+
+✅ Para Super Admin:
+   - O menu lateral mostra o LOGO DO SISTEMA
+   - Configurado em: Config. Sistema → Logo do Sistema
+   - Campo: system_logo_url
+
+✅ Se não houver logo:
+   - Mostra o NOME DA EMPRESA em texto estilizado
+   - Gradiente verde/azul
+
+═══════════════════════════════════════════════════════════════
+📋 COMO CONFIGURAR O LOGO
+═══════════════════════════════════════════════════════════════
+
+1. Login como Admin da empresa
+2. Menu → Configurações
+3. Aba "Configurações Gerais"
+4. Campo "Logo da Empresa (URL)"
+5. Inserir URL da imagem (ex: https://exemplo.com/logo.png)
+6. Salvar
+7. Recarregar página - logo aparece no topo do menu
+
+Formatos aceitos: PNG, JPG, SVG
+Tamanho recomendado: 200x60px (largura x altura)
+
+═══════════════════════════════════════════════════════════════
+🔧 CORREÇÕES ADICIONAIS
+═══════════════════════════════════════════════════════════════
+
+✅ Página de Atividades Críticas (Super Admin):
+   - CORRIGIDO: Agora mostra dados corretamente
+   - Antes: "Invalid Date" e "Usuário não encontrado"
+   - Depois: Datas formatadas e nomes de usuários/empresas
+
+✅ Movimentações de Estoque:
+   - CORRIGIDO: Nomes de produtos e usuários vêm do banco
+   - Performance melhorada (menos requisições)
+   - Dados isolados por empresa
+
+═══════════════════════════════════════════════════════════════
+📊 ESTRUTURA FINAL
+═══════════════════════════════════════════════════════════════
+
+public_html/
+├── .htaccess                     (RewriteBase /estoque/)
+├── api.php                       (✅ ATUALIZADO)
+├── config.php                    (Não modificar - já configurado)
+├── index.html                    (✅ ATUALIZADO)
+└── assets/
+    └── index-BLj1zvQV.js        (✅ NOVO)
+
+Total: 5 arquivos (951 KB)
+
+═══════════════════════════════════════════════════════════════
+
+Última atualização: 15/11/2025 - 22:30
+Build: index-BLj1zvQV.js (951.53 KB)

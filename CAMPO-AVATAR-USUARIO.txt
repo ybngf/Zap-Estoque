@@ -1,0 +1,137 @@
+═══════════════════════════════════════════════════════════════
+✨ NOVA FUNCIONALIDADE - CAMPO AVATAR DE USUÁRIO
+═══════════════════════════════════════════════════════════════
+
+📦 ARQUIVOS ATUALIZADOS:
+
+1. public_html/assets/index-DHgON77B.js (NOVO - 952.44 KB)
+   - Adicionado campo de Avatar URL no formulário de usuários
+   - Preview do avatar em tempo real
+
+2. public_html/index.html
+   - Atualizado para index-DHgON77B.js
+
+═══════════════════════════════════════════════════════════════
+🎨 COMO FUNCIONA
+═══════════════════════════════════════════════════════════════
+
+1. Menu → Usuários → Novo Usuário (ou Editar)
+2. Campos disponíveis:
+   ✅ Nome
+   ✅ Email
+   ✅ Senha
+   ✅ Avatar (URL da imagem) ← NOVO!
+   ✅ Nível de Acesso
+   ✅ Empresa
+
+3. Campo Avatar:
+   - Aceita URL de imagem externa
+   - Preview automático abaixo do campo
+   - Se a URL for inválida, mostra avatar gerado automaticamente
+   - Opcional (não obrigatório)
+
+═══════════════════════════════════════════════════════════════
+📸 EXEMPLOS DE URLs DE AVATAR
+═══════════════════════════════════════════════════════════════
+
+Serviços gratuitos de avatar:
+
+1. UI Avatars (gerado com iniciais):
+   https://ui-avatars.com/api/?name=João+Silva&background=10b981&color=fff
+
+2. Gravatar (baseado em email):
+   https://www.gravatar.com/avatar/HASH_DO_EMAIL
+
+3. Imgur, Cloudinary, ou qualquer URL pública:
+   https://i.imgur.com/exemplo.jpg
+   https://exemplo.com/fotos/avatar.png
+
+4. Avatar próprio hospedado no servidor:
+   https://www.donasalada.com.br/avatars/joao.jpg
+
+═══════════════════════════════════════════════════════════════
+🎯 RECURSOS DO CAMPO AVATAR
+═══════════════════════════════════════════════════════════════
+
+✅ Preview em Tempo Real:
+   - Ao digitar a URL, o avatar aparece abaixo
+   - Mostra "Preview do avatar"
+   - Avatar circular com borda
+
+✅ Fallback Automático:
+   - Se a imagem falhar ao carregar
+   - Gera avatar com iniciais do nome
+   - Fundo verde, letras brancas
+
+✅ Validação:
+   - Campo aceita URLs (type="url")
+   - Valida formato de URL
+   - Opcional (pode ficar vazio)
+
+✅ Exibição na Lista:
+   - Avatar circular (40x40px) ao lado do nome
+   - Imagem com object-cover (não distorce)
+
+═══════════════════════════════════════════════════════════════
+🔄 ATUALIZAR SERVIDOR
+═══════════════════════════════════════════════════════════════
+
+Copiar para: https://www.donasalada.com.br/estoque/
+
+Arquivos:
+✅ index.html
+✅ assets/index-DHgON77B.js
+❌ assets/index-BLj1zvQV.js (deletar)
+
+═══════════════════════════════════════════════════════════════
+📋 ESTRUTURA DO FORMULÁRIO (ORDEM)
+═══════════════════════════════════════════════════════════════
+
+1. Nome
+2. Email
+3. Senha
+4. Avatar (URL) ← NOVO!
+   └─ Preview do avatar (se URL válida)
+5. Nível de Acesso
+6. Empresa
+
+═══════════════════════════════════════════════════════════════
+💡 DICAS DE USO
+═══════════════════════════════════════════════════════════════
+
+1. Para criar avatares com iniciais:
+   - Use: https://ui-avatars.com/api/
+   - Personalize: ?name=Nome&background=COR&color=fff
+
+2. Para hospedar avatares próprios:
+   - Crie pasta: /estoque/avatars/
+   - Faça upload das imagens
+   - Use: https://www.donasalada.com.br/estoque/avatars/foto.jpg
+
+3. Para usar Gravatar:
+   - Precisa ter conta no gravatar.com
+   - Avatar vinculado ao email do usuário
+   - URL: https://www.gravatar.com/avatar/MD5_DO_EMAIL
+
+═══════════════════════════════════════════════════════════════
+🎨 PERSONALIZAÇÃO DE CORES (UI Avatars)
+═══════════════════════════════════════════════════════════════
+
+Cores sugeridas por nível:
+
+Super Admin (Vermelho):
+https://ui-avatars.com/api/?name=Nome&background=dc2626&color=fff
+
+Admin (Roxo):
+https://ui-avatars.com/api/?name=Nome&background=9333ea&color=fff
+
+Manager (Azul):
+https://ui-avatars.com/api/?name=Nome&background=3b82f6&color=fff
+
+Employee (Verde):
+https://ui-avatars.com/api/?name=Nome&background=10b981&color=fff
+
+═══════════════════════════════════════════════════════════════
+
+Última atualização: 15/11/2025 - 23:00
+Build: index-DHgON77B.js (952.44 KB)
