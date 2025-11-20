@@ -9,6 +9,12 @@ header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json; charset=UTF-8');
 
+// Security Headers
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -370,6 +376,9 @@ function handleAuth($conn, $path_parts, $input) {
             // Verificar senha usando password_verify
             if (password_verify($password, $row['password'])) {
                 error_log("Login SUCCESS for: " . $email);
+                
+                // Regenerar session ID para prevenir session fixation attacks
+                session_regenerate_id(true);
                 
                 // Salvar na sessão
                 $_SESSION['user_id'] = $row['id'];
@@ -1296,7 +1305,64 @@ function handleActivityLog($conn, $method, $id, $input) {
     
     switch ($method) {
         case 'GET':
-            // Query base
+            // Arrays para construir a query dinamicamente
+            $whereClauses = [];
+            $params = [];
+            $types = "";
+            
+            // Filtrar por empresa (exceto Super Admin)
+            if ($currentUser['role'] !== 'Super Admin') {
+                $whereClauses[] = "al.company_id = ?";
+                $params[] = (int)$currentUser['company_id'];
+                $types .= "i";
+            }
+            
+            // Filtros do relatório de atividades críticas (apenas para Super Admin)
+            if ($currentUser['role'] === 'Super Admin') {
+                // Filtro de data inicial
+                if (isset($_GET['start_date']) && !empty($_GET['start_date'])) {
+                    $whereClauses[] = "DATE(al.created_at) >= ?";
+                    $params[] = $_GET['start_date'];
+                    $types .= "s";
+                }
+                
+                // Filtro de data final
+                if (isset($_GET['end_date']) && !empty($_GET['end_date'])) {
+                    $whereClauses[] = "DATE(al.created_at) <= ?";
+                    $params[] = $_GET['end_date'];
+                    $types .= "s";
+                }
+                
+                // Filtro de usuário
+                if (isset($_GET['user_id']) && !empty($_GET['user_id'])) {
+                    $whereClauses[] = "al.user_id = ?";
+                    $params[] = (int)$_GET['user_id'];
+                    $types .= "i";
+                }
+                
+                // Filtro de empresa
+                if (isset($_GET['company_id']) && !empty($_GET['company_id'])) {
+                    $whereClauses[] = "al.company_id = ?";
+                    $params[] = (int)$_GET['company_id'];
+                    $types .= "i";
+                }
+                
+                // Filtro de tipo de ação
+                if (isset($_GET['action_type']) && !empty($_GET['action_type'])) {
+                    $whereClauses[] = "al.action = ?";
+                    $params[] = $_GET['action_type'];
+                    $types .= "s";
+                }
+                
+                // Filtro de tabela
+                if (isset($_GET['table_name']) && !empty($_GET['table_name'])) {
+                    $whereClauses[] = "al.entity_type = ?";
+                    $params[] = $_GET['table_name'];
+                    $types .= "s";
+                }
+            }
+            
+            // Construir query
             $query = "SELECT 
                         al.id,
                         al.user_id,
@@ -1316,60 +1382,24 @@ function handleActivityLog($conn, $method, $id, $input) {
                       LEFT JOIN users u ON al.user_id = u.id
                       LEFT JOIN companies c ON al.company_id = c.id";
             
-            $conditions = [];
-            
-            // Filtrar por empresa (exceto Super Admin)
-            if ($currentUser['role'] !== 'Super Admin') {
-                $conditions[] = "al.company_id = " . (int)$currentUser['company_id'];
-            }
-            
-            // Filtros do relatório de atividades críticas (apenas para Super Admin)
-            if ($currentUser['role'] === 'Super Admin') {
-                // Filtro de data inicial
-                if (isset($_GET['start_date']) && !empty($_GET['start_date'])) {
-                    $startDate = $conn->real_escape_string($_GET['start_date']);
-                    $conditions[] = "DATE(al.created_at) >= '$startDate'";
-                }
-                
-                // Filtro de data final
-                if (isset($_GET['end_date']) && !empty($_GET['end_date'])) {
-                    $endDate = $conn->real_escape_string($_GET['end_date']);
-                    $conditions[] = "DATE(al.created_at) <= '$endDate'";
-                }
-                
-                // Filtro de usuário
-                if (isset($_GET['user_id']) && !empty($_GET['user_id'])) {
-                    $userId = (int)$_GET['user_id'];
-                    $conditions[] = "al.user_id = $userId";
-                }
-                
-                // Filtro de empresa
-                if (isset($_GET['company_id']) && !empty($_GET['company_id'])) {
-                    $companyId = (int)$_GET['company_id'];
-                    $conditions[] = "al.company_id = $companyId";
-                }
-                
-                // Filtro de tipo de ação
-                if (isset($_GET['action_type']) && !empty($_GET['action_type'])) {
-                    $actionType = $conn->real_escape_string($_GET['action_type']);
-                    $conditions[] = "al.action = '$actionType'";
-                }
-                
-                // Filtro de tabela
-                if (isset($_GET['table_name']) && !empty($_GET['table_name'])) {
-                    $tableName = $conn->real_escape_string($_GET['table_name']);
-                    $conditions[] = "al.entity_type = '$tableName'";
-                }
-            }
-            
-            // Adicionar condições à query
-            if (count($conditions) > 0) {
-                $query .= " WHERE " . implode(" AND ", $conditions);
+            // Adicionar cláusula WHERE se houver filtros
+            if (count($whereClauses) > 0) {
+                $query .= " WHERE " . implode(" AND ", $whereClauses);
             }
             
             $query .= " ORDER BY al.created_at DESC LIMIT 1000";
             
-            $result = $conn->query($query);
+            // Preparar statement
+            $stmt = $conn->prepare($query);
+            
+            // Bind parameters se houver
+            if (count($params) > 0) {
+                $stmt->bind_param($types, ...$params);
+            }
+            
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
             $logs = [];
             
             while ($row = $result->fetch_assoc()) {
@@ -1391,6 +1421,7 @@ function handleActivityLog($conn, $method, $id, $input) {
                 ];
             }
             
+            $stmt->close();
             echo json_encode($logs);
             break;
             
@@ -1409,21 +1440,31 @@ function handleDashboard($conn) {
     }
     
     $data = [];
-    $companyFilter = "";
-    $companyId = $currentUser['company_id'];
-    
-    // Super Admin vê tudo, outros apenas da sua empresa
-    if ($currentUser['role'] !== 'Super Admin') {
-        $companyFilter = " WHERE company_id = $companyId";
-    }
+    $companyId = (int)$currentUser['company_id'];
     
     // Total products
-    $result = $conn->query("SELECT COUNT(*) as count FROM products" . $companyFilter);
+    if ($currentUser['role'] === 'Super Admin') {
+        $result = $conn->query("SELECT COUNT(*) as count FROM products");
+    } else {
+        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM products WHERE company_id = ?");
+        $stmt->bind_param("i", $companyId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    }
     $data['totalProducts'] = $result->fetch_assoc()['count'];
+    if (isset($stmt)) $stmt->close();
     
     // Low stock products
-    $result = $conn->query("SELECT COUNT(*) as count FROM products" . $companyFilter . ($companyFilter ? " AND" : " WHERE") . " stock < min_stock");
+    if ($currentUser['role'] === 'Super Admin') {
+        $result = $conn->query("SELECT COUNT(*) as count FROM products WHERE stock < min_stock");
+    } else {
+        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM products WHERE company_id = ? AND stock < min_stock");
+        $stmt->bind_param("i", $companyId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    }
     $data['lowStockProducts'] = $result->fetch_assoc()['count'];
+    if (isset($stmt)) $stmt->close();
     
     // Recent movements - filtrar por produtos da empresa
     if ($currentUser['role'] === 'Super Admin') {
@@ -1433,23 +1474,31 @@ function handleDashboard($conn) {
         $result = $conn->query("SELECT COUNT(*) as count FROM stock_movements WHERE type = 'Saída' ORDER BY date DESC LIMIT 5");
         $data['recentMovementsOut'] = $result->fetch_assoc()['count'];
     } else {
-        $result = $conn->query("
+        $stmt = $conn->prepare("
             SELECT COUNT(*) as count 
             FROM stock_movements sm
             JOIN products p ON sm.product_id = p.id
-            WHERE p.company_id = $companyId AND sm.type = 'Entrada'
+            WHERE p.company_id = ? AND sm.type = 'Entrada'
             ORDER BY sm.date DESC LIMIT 5
         ");
+        $stmt->bind_param("i", $companyId);
+        $stmt->execute();
+        $result = $stmt->get_result();
         $data['recentMovementsIn'] = $result->fetch_assoc()['count'];
+        $stmt->close();
         
-        $result = $conn->query("
+        $stmt = $conn->prepare("
             SELECT COUNT(*) as count 
             FROM stock_movements sm
             JOIN products p ON sm.product_id = p.id
-            WHERE p.company_id = $companyId AND sm.type = 'Saída'
+            WHERE p.company_id = ? AND sm.type = 'Saída'
             ORDER BY sm.date DESC LIMIT 5
         ");
+        $stmt->bind_param("i", $companyId);
+        $stmt->execute();
+        $result = $stmt->get_result();
         $data['recentMovementsOut'] = $result->fetch_assoc()['count'];
+        $stmt->close();
     }
     
     // Stock by category - apenas categorias e produtos da empresa
@@ -1461,19 +1510,23 @@ function handleDashboard($conn) {
             GROUP BY c.id, c.name
         ");
     } else {
-        $result = $conn->query("
+        $stmt = $conn->prepare("
             SELECT c.name, SUM(p.stock) as estoque
             FROM products p
             JOIN categories c ON p.category_id = c.id
-            WHERE p.company_id = $companyId
+            WHERE p.company_id = ?
             GROUP BY c.id, c.name
         ");
+        $stmt->bind_param("i", $companyId);
+        $stmt->execute();
+        $result = $stmt->get_result();
     }
     
     $stockByCategory = [];
     while ($row = $result->fetch_assoc()) {
         $stockByCategory[] = $row;
     }
+    if (isset($stmt)) $stmt->close();
     $data['stockByCategoryData'] = $stockByCategory;
     
     echo json_encode($data);
