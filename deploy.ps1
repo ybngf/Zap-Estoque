@@ -2,7 +2,7 @@
 # Execute: .\deploy.ps1
 
 Write-Host "=====================================" -ForegroundColor Cyan
-Write-Host "  Estoque Gemini - Deploy Script    " -ForegroundColor Cyan
+Write-Host "  Zap Estoque - Deploy Script    " -ForegroundColor Cyan
 Write-Host "=====================================" -ForegroundColor Cyan
 Write-Host ""
 

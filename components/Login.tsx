@@ -10,7 +10,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [systemName, setSystemName] = useState<string>('Estoque Gemini');
+  const [systemName, setSystemName] = useState<string>('Zap Estoque');
   const [logoUrl, setLogoUrl] = useState<string>('');
 
   React.useEffect(() => {

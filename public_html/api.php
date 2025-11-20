@@ -1,6 +1,6 @@
 <?php
 /**
- * API Backend for Estoque Gemini
+ * API Backend for Zap Estoque
  * PHP Version for cPanel/Apache deployment
  */
 

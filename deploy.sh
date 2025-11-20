@@ -3,7 +3,7 @@
 # Execute: chmod +x deploy.sh && ./deploy.sh
 
 echo "====================================="
-echo "  Estoque Gemini - Deploy Script    "
+echo "  Zap Estoque - Deploy Script    "
 echo "====================================="
 echo ""
 

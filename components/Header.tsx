@@ -12,7 +12,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onMenuClick }) => {
   const [companyName, setCompanyName] = useState<string>('');
-  const [systemName, setSystemName] = useState<string>('Estoque Gemini');
+  const [systemName, setSystemName] = useState<string>('Zap Estoque');
   const [logoUrl, setLogoUrl] = useState<string>('');
 
   useEffect(() => {

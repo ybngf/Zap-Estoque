@@ -134,7 +134,7 @@ const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                 value={formData.system_name || ''}
                 onChange={(e) => handleChange('system_name', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-                placeholder="Ex: Estoque Gemini"
+                placeholder="Ex: Zap Estoque"
               />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {settings?.system_name?.description}

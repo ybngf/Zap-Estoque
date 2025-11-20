@@ -15,7 +15,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ view, setView, hasPermission, isOpen, onClose, currentUser }) => {
-  const [companyName, setCompanyName] = React.useState<string>('Estoque Gemini');
+  const [companyName, setCompanyName] = React.useState<string>('Zap Estoque');
   const [logoUrl, setLogoUrl] = React.useState<string>('');
 
   React.useEffect(() => {
