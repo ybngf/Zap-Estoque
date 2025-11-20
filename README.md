@@ -1,255 +1,353 @@
-# 📦 Estoque Gemini - Sistema de Gestão de Estoque
+# 🚀 Zap Estoque
 
-Sistema completo de gestão de estoque com suporte multi-empresa, desenvolvido com React + TypeScript + PHP + MySQL.
+Sistema profissional de gestão de estoque multi-empresa com Inteligência Artificial integrada.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![React](https://img.shields.io/badge/React-19.2.0-61dafb.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-3178c6.svg)
-![PHP](https://img.shields.io/badge/PHP-8.x-777bb4.svg)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-4479a1.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![React](https://img.shields.io/badge/React-19.2.0-61dafb)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6)
+![PHP](https://img.shields.io/badge/PHP-8.x-777bb4)
 
-## 🚀 Funcionalidades
+---
 
-### 📊 Gestão de Produtos
-- ✅ Cadastro completo de produtos (nome, SKU, categoria, fornecedor, preço, estoque)
-- ✅ Upload de imagens via URL
-- ✅ Controle de estoque mínimo com alertas
-- ✅ Importação em massa via CSV/Excel
-- ✅ Impressão de etiquetas e relatórios
-- ✅ Visualização em cards responsivos (mobile-friendly)
+## 📋 Sobre o Projeto
 
-### 📋 Categorias e Fornecedores
-- ✅ Gestão de categorias de produtos
-- ✅ Cadastro de fornecedores com informações completas
-- ✅ Importação em massa
-- ✅ Ordenação alfabética automática
+**Zap Estoque** é um sistema completo de gestão de estoque desenvolvido com tecnologias de ponta (2024/2025), incluindo processamento de notas fiscais com **Google Gemini AI**. 
 
-### 📈 Movimentações de Estoque
-- ✅ Registro de entradas, saídas e ajustes
-- ✅ Histórico completo de movimentações
-- ✅ Rastreabilidade por usuário e data
-- ✅ Atualização automática de estoque
+Perfeito para empresas que precisam controlar estoque de múltiplas filiais em um único sistema com isolamento total de dados.
 
-### 🤖 Processamento Inteligente
-- ✅ OCR de notas fiscais usando Google Gemini AI
-- ✅ Extração automática de produtos
-- ✅ Importação facilitada de dados
+---
 
-### 👥 Multi-empresa e Usuários
-- ✅ Suporte para múltiplas empresas
-- ✅ Hierarquia de permissões (Super Admin, Admin, Manager, Employee)
-- ✅ Isolamento completo de dados por empresa
-- ✅ Gestão de usuários por empresa
+## ✨ Principais Funcionalidades
 
-### 📊 Relatórios e Dashboard
-- ✅ Dashboard com métricas em tempo real
-- ✅ Gráficos de produtos em estoque baixo
-- ✅ Estatísticas de movimentações
-- ✅ Relatórios personalizados
-- ✅ Exportação em Excel/CSV
+### 🏢 **Multi-Empresa**
+- Gestão ilimitada de empresas em um único sistema
+- Isolamento completo de dados por empresa
+- Super Admin com visão consolidada
+- Ativação/desativação de empresas e usuários
 
-### 🔒 Log de Atividades
-- ✅ Registro completo de todas as ações (INSERT, UPDATE, DELETE)
-- ✅ Rastreamento por usuário, IP e navegador
-- ✅ Filtros avançados (ação, entidade, usuário, data)
-- ✅ Visualização de dados antigos vs. novos
-- ✅ Relatório de atividades críticas (Super Admin)
+### 🤖 **Inteligência Artificial**
+- Processamento automático de notas fiscais (Google Gemini)
+- Extração de produtos, quantidades e valores
+- Cadastro instantâneo de produtos via IA
+- Economia de 90% do tempo de lançamento
 
-### ⚙️ Configurações
-- ✅ Personalização do nome do sistema
-- ✅ Upload de logo customizado
-- ✅ Configurações por empresa
-- ✅ Ativação/desativação de funcionalidades
+### 📦 **Gestão de Estoque**
+- Controle completo de produtos
+- Movimentações (Entrada/Saída/Ajuste)
+- Estoque mínimo com alertas
+- Rastreabilidade total de movimentações
+- Histórico detalhado com usuário e data
 
-## 🛠️ Tecnologias
+### 👥 **Controle de Usuários**
+- 4 níveis de acesso (Super Admin, Admin, Gerente, Funcionário)
+- Permissões granulares por role
+- Usuários ilimitados
+- Avatar personalizado
+- Sistema de ativação/desativação
+
+### 📊 **Relatórios Automáticos**
+- Envio por E-mail (SMTP configurável)
+- Envio por WhatsApp (Evolution API)
+- Agendamento (Diário/Semanal/Mensal)
+- Produtos em falta automático
+- Dashboard com métricas em tempo real
+
+### 🎨 **Interface Moderna**
+- Design clean e profissional
+- Dark mode nativo
+- 100% responsivo (mobile/tablet/desktop)
+- Animações suaves
+- Experiência de usuário premium
+
+---
+
+## 🛠️ Tecnologias Utilizadas
 
 ### Frontend
-- **React 19.2.0** - Biblioteca UI
-- **TypeScript 5.6.2** - Tipagem estática
-- **Vite 5.4.21** - Build tool
-- **Tailwind CSS 3.4.17** - Estilização
-- **Heroicons** - Ícones
+- **React 19.2.0** - Framework JavaScript mais moderno
+- **TypeScript 5.x** - Tipagem estática e segurança
+- **Tailwind CSS** - Design system responsivo
+- **Vite 5.x** - Build tool ultrarrápido
+- **Recharts** - Gráficos e visualizações
 
 ### Backend
-- **PHP 8.x** - Server-side
-- **MySQL 8.0** - Banco de dados
-- **Google Gemini AI** - OCR e processamento inteligente
+- **PHP 8.x** - Linguagem server-side
+- **MySQL 8.0** - Banco de dados relacional
+- **API RESTful** - Arquitetura escalável
+- **Session-based Auth** - Autenticação segura
 
-### Bibliotecas Adicionais
-- **xlsx** - Manipulação de planilhas
-- **jspdf** - Geração de PDFs
-- **react-to-print** - Impressão de componentes
+### Integrações
+- **Google Gemini AI** - Processamento de notas fiscais
+- **Evolution API** - WhatsApp Business
+- **SMTP** - E-mail customizável
+- **CSV Import/Export** - Importação em massa
 
-## 📋 Pré-requisitos
+---
 
-- Node.js 18+ 
-- PHP 8.0+
-- MySQL 8.0+
-- Composer (opcional)
+## 📦 Instalação
 
-## 🚀 Instalação
+### Pré-requisitos
 
-### 1. Clone o repositório
+- PHP 8.0 ou superior
+- MySQL 8.0 ou superior
+- Node.js 18+ (para desenvolvimento)
+- Servidor web (Apache/Nginx)
+- cPanel ou acesso SSH (para produção)
+
+### Passo a Passo
+
+1. **Clone o repositório:**
 ```bash
-git clone https://github.com/seu-usuario/estoque-gemini.git
-cd estoque-gemini
+git clone https://github.com/ybngf/Zap-Estoque.git
+cd Zap-Estoque
 ```
 
-### 2. Instale as dependências do frontend
+2. **Configurar banco de dados:**
+```bash
+mysql -u root -p
+CREATE DATABASE zap_estoque;
+USE zap_estoque;
+source database/schema.sql
+```
+
+3. **Configurar backend:**
+```bash
+cd public_html
+cp config.example.php config.php
+# Edite config.php com suas credenciais
+```
+
+4. **Instalar dependências (desenvolvimento):**
 ```bash
 npm install
 ```
 
-### 3. Configure o banco de dados
-
-Execute o script SQL para criar as tabelas:
-```bash
-# Importe o arquivo database.sql no MySQL
-mysql -u seu_usuario -p seu_banco < database.sql
-```
-
-Ou crie manualmente as tabelas principais:
-- `companies` - Empresas
-- `users` - Usuários
-- `categories` - Categorias
-- `suppliers` - Fornecedores
-- `products` - Produtos
-- `stock_movements` - Movimentações
-- `activity_log` - Log de atividades
-- `settings` - Configurações do sistema
-- `company_settings` - Configurações por empresa
-
-### 4. Configure o arquivo de conexão
-
-Edite `public_html/api.php` com as credenciais do banco:
-```php
-$servername = "localhost";
-$username = "seu_usuario";
-$password = "sua_senha";
-$dbname = "seu_banco";
-```
-
-### 5. Configure a API do Gemini (opcional)
-
-Para usar o processamento de notas fiscais, configure a chave da API:
-```typescript
-// Em services/geminiService.ts
-const API_KEY = 'sua_chave_api_gemini';
-```
-
-## 💻 Desenvolvimento
-
-### Rodar em modo desenvolvimento
-```bash
-# Frontend (Vite dev server)
-npm run dev
-
-# Backend (PHP built-in server)
-cd public_html
-php -S localhost:8000
-```
-
-Acesse: `http://localhost:5173`
-
-### Build para produção
+5. **Build do frontend:**
 ```bash
 npm run build
 ```
 
-Os arquivos serão gerados em `public_html/`.
+6. **Configurar servidor web:**
+- Aponte o DocumentRoot para `public_html/`
+- Habilite mod_rewrite (Apache)
+- Configure CORS se necessário
 
-## 🌐 Deploy
-
-### Deploy em cPanel/Hospedagem compartilhada
-
-1. Faça o build do projeto:
-```bash
-npm run build
+7. **Acessar o sistema:**
 ```
-
-2. Faça upload dos arquivos de `public_html/` para o servidor
-
-3. Configure o banco de dados MySQL no painel da hospedagem
-
-4. Edite `api.php` com as credenciais do banco
-
-5. Ajuste o `API_URL` em `services/api.ts` se necessário
-
-6. Acesse o sistema pela URL configurada
-
-**Documentação detalhada:** Veja `GUIA-INSTALACAO-CPANEL.md`
-
-## 👤 Usuários Padrão
-
-Após instalação, crie um Super Admin:
-- Use o arquivo `public_html/reset-password.php` para criar o primeiro usuário
-
-## 📚 Documentação Adicional
-
-- `GUIA-INSTALACAO-CPANEL.md` - Guia completo de instalação em cPanel
-- `RESOLVER-PROBLEMA-LOGIN.md` - Solução de problemas de login
-- `ATUALIZAR-API-SERVIDOR.md` - Como atualizar api.php em produção
-- `CORRECAO-IMAGEM-PRODUTO.md` - Documentação da correção de URLs de imagem
-- `CORRECAO-LOG-ATIVIDADES.md` - Documentação do Log de Atividades
-
-## 🔐 Hierarquia de Permissões
-
+http://localhost
+# Usuário padrão: admin@admin.com
+# Senha padrão: admin123
 ```
-Super Admin (Nível 3)
-├── Gerencia múltiplas empresas
-├── Acesso a todas as configurações
-├── Relatório de atividades críticas
-└── Visualiza logs de todas as empresas
-
-Admin (Nível 2)
-├── Gerencia usuários da empresa
-├── Configurações da empresa
-├── Log de atividades da empresa
-└── Todas as funcionalidades operacionais
-
-Manager (Nível 1)
-├── Gerencia produtos, categorias e fornecedores
-├── Processa notas fiscais
-├── Visualiza relatórios
-└── Registra movimentações
-
-Employee (Nível 0)
-├── Visualiza produtos
-├── Registra movimentações
-├── Acessa dashboard
-└── Visualiza relatórios básicos
-```
-
-## 🎨 Recursos Responsivos
-
-✅ Menu lateral retrátil em mobile
-✅ Cards de produtos adaptáveis
-✅ Tabelas com scroll horizontal
-✅ Formulários otimizados para toque
-✅ Dashboard responsivo
-
-## 🤝 Contribuindo
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📝 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
-## 🐛 Suporte
-
-Para relatar bugs ou solicitar novas funcionalidades, abra uma [issue](https://github.com/seu-usuario/estoque-gemini/issues).
-
-## 📧 Contato
-
-Desenvolvido com ❤️ usando React + TypeScript + PHP
 
 ---
 
-**Última atualização:** 15/11/2025
-**Versão:** 1.0.0
-**Build:** 951.45 kB (gzip: 241.68 kB)
+## 🚀 Deploy em Produção
+
+### cPanel
+
+1. Upload dos arquivos via FTP ou File Manager
+2. Importar banco de dados via phpMyAdmin
+3. Configurar `config.php` com credenciais do cPanel
+4. Acessar via domínio
+
+### VPS/Servidor Dedicado
+
+Consulte `DEPLOY_GUIDE.md` para instruções detalhadas.
+
+---
+
+## 📚 Documentação
+
+- **[CONFIGURACAO-LOCALHOST.md](CONFIGURACAO-LOCALHOST.md)** - Setup em ambiente local
+- **[GUIA-INSTALACAO-CPANEL.md](GUIA-INSTALACAO-CPANEL.md)** - Deploy em cPanel
+- **[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)** - Deploy completo
+- **[CONFIGURACAO-RELATORIOS.md](CONFIGURACAO-RELATORIOS.md)** - Setup de relatórios
+- **[DEPLOYMENT_INSTRUCTIONS.md](DEPLOYMENT_INSTRUCTIONS.md)** - Sistema de ativação
+- **[SUPER_ADMIN_MULTIEMPRESA.md](SUPER_ADMIN_MULTIEMPRESA.md)** - Multi-empresa
+- **[RENOMEACAO_ZAP_ESTOQUE.md](RENOMEACAO_ZAP_ESTOQUE.md)** - Histórico de renomeação
+
+---
+
+## 🎯 Funcionalidades Detalhadas
+
+### Dashboard
+- Total de produtos
+- Produtos em falta
+- Movimentações recentes
+- Gráficos de estoque
+- Alertas importantes
+
+### Produtos
+- Cadastro completo (nome, SKU, categoria, fornecedor, preço, estoque)
+- Upload de imagem
+- Filtros avançados (categoria, fornecedor, estoque baixo)
+- Importação CSV em massa
+- Exportação de dados
+- Multi-empresa (Super Admin vê todas)
+
+### Categorias
+- Gerenciamento completo
+- Ordenação alfabética
+- Contador de produtos por categoria
+- Importação CSV
+- Multi-empresa com filtro
+
+### Fornecedores
+- Cadastro com contato completo
+- E-mail e telefone
+- Pessoa de contato
+- Contador de produtos
+- Importação CSV
+- Multi-empresa com filtro
+
+### Movimentações de Estoque
+- Entrada, Saída e Ajuste
+- Motivo obrigatório
+- Rastreamento de usuário
+- Data e hora automáticos
+- Histórico completo
+- Multi-empresa (Super Admin)
+
+### Processamento de NF com IA
+- Upload de imagem da nota fiscal
+- Google Gemini extrai dados automaticamente
+- Preview antes de salvar
+- Cadastro em lote
+- Economia massiva de tempo
+
+### Usuários
+- 4 níveis (Super Admin, Admin, Gerente, Funcionário)
+- Avatar personalizado
+- Ativação/desativação
+- Filtro por empresa
+- Gerenciamento completo
+
+### Empresas (Super Admin)
+- Cadastro de múltiplas empresas
+- Ativação/desativação em cascata
+- CNPJ e endereço
+- Contador de usuários
+- Isolamento de dados
+
+### Configurações do Sistema
+- Nome do sistema customizável
+- Logo personalizável
+- Chave API do Gemini
+- SMTP para e-mails
+- Evolution API para WhatsApp
+- Agendamento de relatórios
+
+### Log de Atividades
+- Auditoria completa (INSERT, UPDATE, DELETE)
+- Registro de usuário e IP
+- Dados antes/depois da alteração
+- Paginação eficiente
+- Filtro por entidade
+
+---
+
+## 🔐 Níveis de Acesso
+
+### Super Admin
+- Acesso total ao sistema
+- Gerencia todas as empresas
+- Visualiza dados consolidados
+- Ativa/desativa empresas e usuários
+- Configurações globais
+
+### Admin
+- Gerencia sua empresa
+- Cadastra usuários da empresa
+- Acessa todos os módulos
+- Relatórios e configurações
+
+### Gerente
+- Visualiza e edita produtos
+- Registra movimentações
+- Acessa relatórios
+- Sem acesso a usuários
+
+### Funcionário
+- Visualiza produtos
+- Registra movimentações básicas
+- Acesso limitado
+
+---
+
+## 🎨 Screenshots
+
+### Dashboard
+![Dashboard](Imagens/menu%20dashboard.png)
+
+### Menu Super Admin
+![Super Admin](Imagens/menu%20superadm.png)
+
+### Importação com IA
+![IA](Imagens/importar%20com%20ia.png)
+
+### Importação CSV
+![CSV](Imagens/importacao%20de%20csv.png)
+
+---
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Sinta-se à vontade para:
+
+1. Fork o projeto
+2. Criar uma branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add: nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abrir um Pull Request
+
+---
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+## 👨‍💻 Autor
+
+**ybngf**
+
+- GitHub: [@ybngf](https://github.com/ybngf)
+- Repositório: [Zap-Estoque](https://github.com/ybngf/Zap-Estoque)
+
+---
+
+## 📞 Suporte
+
+Para reportar bugs ou solicitar funcionalidades, abra uma [issue](https://github.com/ybngf/Zap-Estoque/issues).
+
+---
+
+## 🙏 Agradecimentos
+
+- Google Gemini AI por processamento de NF
+- Comunidade React
+- Comunidade PHP
+- Todos os contribuidores
+
+---
+
+## 📊 Status do Projeto
+
+✅ **EM PRODUÇÃO** - Sistema estável e pronto para uso
+
+### Próximas Features
+- [ ] App mobile nativo (React Native)
+- [ ] API pública para integrações
+- [ ] Módulo de vendas integrado
+- [ ] Relatórios avançados com BI
+- [ ] Integração com e-commerce
+
+---
+
+**⭐ Se este projeto foi útil, deixe uma estrela!**
+
+---
+
+*Desenvolvido com ❤️ usando React, TypeScript e PHP*
