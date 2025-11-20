@@ -165,7 +165,6 @@ Consulte `DEPLOY_GUIDE.md` para instruções detalhadas.
 - **[CONFIGURACAO-RELATORIOS.md](CONFIGURACAO-RELATORIOS.md)** - Setup de relatórios
 - **[DEPLOYMENT_INSTRUCTIONS.md](DEPLOYMENT_INSTRUCTIONS.md)** - Sistema de ativação
 - **[SUPER_ADMIN_MULTIEMPRESA.md](SUPER_ADMIN_MULTIEMPRESA.md)** - Multi-empresa
-- **[RENOMEACAO_ZAP_ESTOQUE.md](RENOMEACAO_ZAP_ESTOQUE.md)** - Histórico de renomeação
 
 ---
 
