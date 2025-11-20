@@ -178,6 +178,12 @@ export const deleteCompany = async (companyId: number): Promise<{ success: boole
     });
 }
 
+export const toggleCompanyActive = async (companyId: number): Promise<Company> => {
+    return apiRequest<Company>(`/companies/${companyId}/toggle-active`, {
+        method: 'PUT',
+    });
+}
+
 // --- Stock Movements API ---
 export const getStockMovements = async (): Promise<StockMovement[]> => {
     return apiRequest<StockMovement[]>('/stock-movements');

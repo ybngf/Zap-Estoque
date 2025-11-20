@@ -9,19 +9,25 @@ interface CompaniesProps {
 
 const Companies: React.FC<CompaniesProps> = ({ currentUser }) => {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
 
   useEffect(() => {
-      const fetchCompanies = async () => {
+      const fetchData = async () => {
           setIsLoading(true);
-          const data = await api.getCompanies();
-          setCompanies(data);
+          const [companiesData, usersData] = await Promise.all([
+            api.getCompanies(),
+            api.getUsers()
+          ]);
+          setCompanies(companiesData);
+          setUsers(usersData);
           setIsLoading(false);
       }
-      fetchCompanies();
+      fetchData();
   }, []);
   
   const handleOpenModal = () => {
@@ -51,7 +57,7 @@ const Companies: React.FC<CompaniesProps> = ({ currentUser }) => {
         setCompanies(prev => prev.map(c => c.id === editingCompany.id ? updatedCompany : c));
       } else {
         // Criar nova empresa
-        const newCompany = await api.createCompany({ name: newCompanyName.trim() });
+        const newCompany = await api.createCompany({ name: newCompanyName.trim(), active: 1 });
         setCompanies(prev => [newCompany, ...prev]);
       }
       handleCloseModal();
@@ -65,9 +71,33 @@ const Companies: React.FC<CompaniesProps> = ({ currentUser }) => {
       }
   }
 
+  const handleToggleActive = async (companyId: number) => {
+    try {
+      const updatedCompany = await api.toggleCompanyActive(companyId);
+      setCompanies(prev => prev.map(c => c.id === companyId ? updatedCompany : c));
+      // Recarregar usuários para refletir mudanças
+      const usersData = await api.getUsers();
+      setUsers(usersData);
+    } catch (error: any) {
+      alert(error.message || 'Erro ao alterar status da empresa');
+    }
+  }
+
+  // Contar usuários por empresa
+  const getUserCount = (companyId: number) => {
+    return users.filter(u => u.companyId === companyId).length;
+  }
+
+  // Filtrar empresas
+  const filteredCompanies = companies.filter(company => {
+    if (filterActive === 'active') return company.active === 1;
+    if (filterActive === 'inactive') return company.active === 0;
+    return true;
+  });
+
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-2xl mx-auto">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Empresas</h2>
           <button 
@@ -78,23 +108,69 @@ const Companies: React.FC<CompaniesProps> = ({ currentUser }) => {
               Nova Empresa
           </button>
         </div>
+
+        {/* Filtros */}
+        <div className="flex gap-2 mb-6">
+          <button 
+            onClick={() => setFilterActive('all')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${filterActive === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+          >
+            Todas ({companies.length})
+          </button>
+          <button 
+            onClick={() => setFilterActive('active')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${filterActive === 'active' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+          >
+            Ativas ({companies.filter(c => c.active === 1).length})
+          </button>
+          <button 
+            onClick={() => setFilterActive('inactive')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${filterActive === 'inactive' ? 'bg-red-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+          >
+            Inativas ({companies.filter(c => c.active === 0).length})
+          </button>
+        </div>
+
         {isLoading ? (
             <div className="text-center py-8">Carregando empresas...</div>
         ) : (
             <ul className="space-y-3">
-            {companies.map(company => (
+            {filteredCompanies.map(company => (
                 <li key={company.id} className="flex justify-between items-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                <span className="font-semibold text-gray-800 dark:text-gray-200">{company.name}</span>
-                <div>
-                    <button onClick={() => handleEdit(company)} className="p-2 text-gray-500 hover:text-blue-500 transition-colors">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{company.name}</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${company.active === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {company.active === 1 ? '✓ Ativa' : '✗ Inativa'}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {getUserCount(company.id)} usuário(s)
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    {/* Toggle Ativar/Desativar */}
+                    <button 
+                      onClick={() => handleToggleActive(company.id)} 
+                      className={`px-4 py-2 rounded-lg font-semibold transition-colors ${company.active === 1 ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}
+                      title={company.active === 1 ? 'Desativar empresa e seus usuários' : 'Reativar empresa e seus usuários'}
+                    >
+                      {company.active === 1 ? 'Desativar' : 'Ativar'}
+                    </button>
+                    <button onClick={() => handleEdit(company)} className="p-2 text-gray-500 hover:text-blue-500 transition-colors" title="Editar">
                         <PencilIcon className="w-5 h-5" />
                     </button>
-                    <button onClick={() => handleDelete(company.id)} className="p-2 text-gray-500 hover:text-red-500 transition-colors">
+                    <button onClick={() => handleDelete(company.id)} className="p-2 text-gray-500 hover:text-red-500 transition-colors" title="Excluir">
                         <TrashIcon className="w-5 h-5" />
                     </button>
                 </div>
                 </li>
             ))}
+            {filteredCompanies.length === 0 && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                Nenhuma empresa encontrada
+              </div>
+            )}
             </ul>
         )}
       </div>

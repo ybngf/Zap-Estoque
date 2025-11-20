@@ -197,7 +197,8 @@ function formatUser($user) {
         'email' => $user['email'],
         'role' => $user['role'],
         'companyId' => (int)$user['company_id'],
-        'avatar' => $user['avatar'] ?? ''
+        'avatar' => $user['avatar'] ?? '',
+        'active' => (int)($user['active'] ?? 1)
     ];
 }
 
@@ -208,7 +209,8 @@ function formatCompany($company) {
         'id' => (int)$company['id'],
         'name' => $company['name'],
         'cnpj' => $company['cnpj'] ?? '',
-        'address' => $company['address'] ?? ''
+        'address' => $company['address'] ?? '',
+        'active' => (int)($company['active'] ?? 1)
     ];
 }
 
@@ -285,7 +287,12 @@ try {
             break;
             
         case 'companies':
-            handleCompanies($conn, $method, $id, $input);
+            // Check for special action: toggle-active
+            if (isset($path_parts[2]) && $path_parts[2] === 'toggle-active' && $id) {
+                handleCompanyToggleActive($conn, $id);
+            } else {
+                handleCompanies($conn, $method, $id, $input);
+            }
             break;
             
         case 'stock-movements':
@@ -330,13 +337,36 @@ function handleAuth($conn, $path_parts, $input) {
         $email = $input['email'] ?? '';
         $password = $input['password'] ?? '';
         
-        // Buscar usuário por email com company_id
-        $stmt = $conn->prepare("SELECT id, name, email, password, role, company_id, avatar FROM users WHERE email = ?");
+        // Buscar usuário por email com company_id e verificar se está ativo
+        $stmt = $conn->prepare("
+            SELECT u.id, u.name, u.email, u.password, u.role, u.company_id, u.avatar, u.active as user_active, c.active as company_active
+            FROM users u
+            LEFT JOIN companies c ON u.company_id = c.id
+            WHERE u.email = ?
+        ");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
         
         if ($row = $result->fetch_assoc()) {
+            // Verificar se o usuário está ativo
+            if ($row['user_active'] == 0) {
+                error_log("Login FAILED - User inactive: " . $email);
+                http_response_code(403);
+                echo json_encode(['error' => 'Usuário desativado. Entre em contato com o administrador.']);
+                $stmt->close();
+                return;
+            }
+            
+            // Verificar se a empresa está ativa
+            if ($row['company_active'] == 0) {
+                error_log("Login FAILED - Company inactive: " . $email);
+                http_response_code(403);
+                echo json_encode(['error' => 'Empresa desativada. Entre em contato com o Super Admin.']);
+                $stmt->close();
+                return;
+            }
+            
             // Verificar senha usando password_verify
             if (password_verify($password, $row['password'])) {
                 error_log("Login SUCCESS for: " . $email);
@@ -356,7 +386,8 @@ function handleAuth($conn, $path_parts, $input) {
                     'email' => $row['email'],
                     'role' => $row['role'],
                     'companyId' => (int)$row['company_id'],
-                    'avatar' => $row['avatar']
+                    'avatar' => $row['avatar'],
+                    'active' => (int)$row['user_active']
                 ];
                 
                 echo json_encode($user);
@@ -402,23 +433,36 @@ function handleProducts($conn, $method, $id, $input) {
                 echo json_encode(formatProduct($product));
                 $stmt->close();
             } else {
-                // Listar apenas produtos da empresa do usuário
+                // Super Admin vê todos os produtos de todas as empresas
                 if ($currentUser['role'] === 'Super Admin') {
-                    $result = $conn->query("SELECT * FROM products ORDER BY id DESC");
+                    $result = $conn->query("
+                        SELECT p.*, c.name as company_name 
+                        FROM products p
+                        LEFT JOIN companies c ON p.company_id = c.id
+                        ORDER BY p.id DESC
+                    ");
+                    
+                    $products = [];
+                    while ($row = $result->fetch_assoc()) {
+                        $product = formatProduct($row);
+                        $product['companyName'] = $row['company_name'];
+                        $products[] = $product;
+                    }
+                    echo json_encode($products);
                 } else {
+                    // Listar apenas produtos da empresa do usuário
                     $stmt = $conn->prepare("SELECT * FROM products WHERE company_id = ? ORDER BY id DESC");
                     $stmt->bind_param("i", $currentUser['company_id']);
                     $stmt->execute();
                     $result = $stmt->get_result();
+                    
+                    $products = [];
+                    while ($row = $result->fetch_assoc()) {
+                        $products[] = formatProduct($row);
+                    }
+                    echo json_encode($products);
+                    $stmt->close();
                 }
-                
-                $products = [];
-                while ($row = $result->fetch_assoc()) {
-                    $products[] = formatProduct($row);
-                }
-                echo json_encode($products);
-                
-                if (isset($stmt)) $stmt->close();
             }
             break;
             
@@ -514,6 +558,19 @@ function handleProducts($conn, $method, $id, $input) {
             $product = $result->fetch_assoc();
             $newData = formatProduct($product);
             
+            // Se o estoque mudou, registrar movimentação
+            if ($currentProduct['stock'] != $stock) {
+                $difference = $stock - $currentProduct['stock'];
+                $movementType = ($difference > 0) ? 'Entrada' : 'Saída';
+                $quantity = abs($difference);
+                $reason = 'Ajuste manual via edição do produto (estoque anterior: ' . $currentProduct['stock'] . ', novo estoque: ' . $stock . ')';
+                
+                $stmtMove = $conn->prepare("INSERT INTO stock_movements (product_id, user_id, type, quantity, reason, date) VALUES (?, ?, ?, ?, ?, NOW())");
+                $stmtMove->bind_param("iisis", $id, $currentUser['id'], $movementType, $quantity, $reason);
+                $stmtMove->execute();
+                $stmtMove->close();
+            }
+            
             // Log activity
             logActivity($conn, $currentUser, 'UPDATE', 'products', $id, $oldData, $newData);
             
@@ -562,21 +619,34 @@ function handleCategories($conn, $method, $id, $input) {
     
     switch ($method) {
         case 'GET':
-            // Listar apenas categorias da empresa do usuário
+            // Listar categorias (Super Admin vê todas as empresas, outros veem apenas sua empresa)
             if ($currentUser['role'] === 'Super Admin') {
-                $result = $conn->query("SELECT * FROM categories ORDER BY id DESC");
+                $result = $conn->query("
+                    SELECT cat.*, c.name as company_name 
+                    FROM categories cat
+                    LEFT JOIN companies c ON cat.company_id = c.id
+                    ORDER BY cat.id DESC
+                ");
+                
+                $categories = [];
+                while ($row = $result->fetch_assoc()) {
+                    $category = formatCategory($row);
+                    $category['companyName'] = $row['company_name'];
+                    $categories[] = $category;
+                }
+                echo json_encode($categories);
             } else {
                 $stmt = $conn->prepare("SELECT * FROM categories WHERE company_id = ? ORDER BY id DESC");
                 $stmt->bind_param("i", $currentUser['company_id']);
                 $stmt->execute();
                 $result = $stmt->get_result();
+                
+                $categories = [];
+                while ($row = $result->fetch_assoc()) {
+                    $categories[] = formatCategory($row);
+                }
+                echo json_encode($categories);
             }
-            
-            $categories = [];
-            while ($row = $result->fetch_assoc()) {
-                $categories[] = formatCategory($row);
-            }
-            echo json_encode($categories);
             
             if (isset($stmt)) $stmt->close();
             break;
@@ -681,21 +751,34 @@ function handleSuppliers($conn, $method, $id, $input) {
     
     switch ($method) {
         case 'GET':
-            // Listar apenas fornecedores da empresa do usuário
+            // Listar fornecedores (Super Admin vê todas as empresas, outros veem apenas sua empresa)
             if ($currentUser['role'] === 'Super Admin') {
-                $result = $conn->query("SELECT * FROM suppliers ORDER BY id DESC");
+                $result = $conn->query("
+                    SELECT s.*, c.name as company_name 
+                    FROM suppliers s
+                    LEFT JOIN companies c ON s.company_id = c.id
+                    ORDER BY s.id DESC
+                ");
+                
+                $suppliers = [];
+                while ($row = $result->fetch_assoc()) {
+                    $supplier = formatSupplier($row);
+                    $supplier['companyName'] = $row['company_name'];
+                    $suppliers[] = $supplier;
+                }
+                echo json_encode($suppliers);
             } else {
                 $stmt = $conn->prepare("SELECT * FROM suppliers WHERE company_id = ? ORDER BY id DESC");
                 $stmt->bind_param("i", $currentUser['company_id']);
                 $stmt->execute();
                 $result = $stmt->get_result();
+                
+                $suppliers = [];
+                while ($row = $result->fetch_assoc()) {
+                    $suppliers[] = formatSupplier($row);
+                }
+                echo json_encode($suppliers);
             }
-            
-            $suppliers = [];
-            while ($row = $result->fetch_assoc()) {
-                $suppliers[] = formatSupplier($row);
-            }
-            echo json_encode($suppliers);
             
             if (isset($stmt)) $stmt->close();
             break;
@@ -975,6 +1058,67 @@ function handleCompanies($conn, $method, $id, $input) {
     }
 }
 
+function handleCompanyToggleActive($conn, $id) {
+    $currentUser = getCurrentUser($conn);
+    
+    // Apenas Super Admin pode ativar/desativar empresas
+    if (!$currentUser || $currentUser['role'] !== 'Super Admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Acesso negado. Apenas Super Admin pode gerenciar empresas.']);
+        return;
+    }
+    
+    // Buscar estado atual da empresa
+    $stmt = $conn->prepare("SELECT id, name, active FROM companies WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Empresa não encontrada']);
+        $stmt->close();
+        return;
+    }
+    
+    $company = $result->fetch_assoc();
+    $stmt->close();
+    
+    // Inverter o estado (0 -> 1 ou 1 -> 0)
+    $newActive = $company['active'] == 1 ? 0 : 1;
+    
+    // Atualizar empresa
+    $stmt = $conn->prepare("UPDATE companies SET active = ? WHERE id = ?");
+    $stmt->bind_param("ii", $newActive, $id);
+    $stmt->execute();
+    $stmt->close();
+    
+    // Se a empresa foi desativada, desativar todos os usuários da empresa
+    if ($newActive == 0) {
+        $stmt = $conn->prepare("UPDATE users SET active = 0 WHERE company_id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
+    }
+    // Se a empresa foi reativada, reativar todos os usuários da empresa
+    else {
+        $stmt = $conn->prepare("UPDATE users SET active = 1 WHERE company_id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
+    }
+    
+    // Retornar dados atualizados da empresa
+    $stmt = $conn->prepare("SELECT * FROM companies WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $updatedCompany = $result->fetch_assoc();
+    $stmt->close();
+    
+    echo json_encode(formatCompany($updatedCompany));
+}
+
 function handleStockMovements($conn, $method, $id, $input) {
     $currentUser = getCurrentUser($conn);
     if (!$currentUser) {
@@ -987,32 +1131,63 @@ function handleStockMovements($conn, $method, $id, $input) {
     
     switch ($method) {
         case 'GET':
-            // Filter stock movements by company through products table, including product and user names
-            $stmt = $conn->prepare("
-                SELECT 
-                    sm.*,
-                    p.name as product_name,
-                    u.name as user_name
-                FROM stock_movements sm
-                INNER JOIN products p ON sm.product_id = p.id
-                LEFT JOIN users u ON sm.user_id = u.id
-                WHERE p.company_id = ?
-                ORDER BY sm.date DESC
-            ");
-            $stmt->bind_param("i", $companyId);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            $movements = [];
-            while ($row = $result->fetch_assoc()) {
-                $movement = formatStockMovement($row);
-                // Add product and user names to the movement
-                $movement['productName'] = $row['product_name'];
-                $movement['userName'] = $row['user_name'] ?? 'Sistema';
-                $movements[] = $movement;
+            // Super Admin vê todas as empresas, outros usuários só veem sua empresa
+            if ($currentUser['role'] === 'Super Admin') {
+                $stmt = $conn->prepare("
+                    SELECT 
+                        sm.*,
+                        p.name as product_name,
+                        p.company_id,
+                        c.name as company_name,
+                        u.name as user_name
+                    FROM stock_movements sm
+                    INNER JOIN products p ON sm.product_id = p.id
+                    LEFT JOIN companies c ON p.company_id = c.id
+                    LEFT JOIN users u ON sm.user_id = u.id
+                    ORDER BY sm.date DESC
+                ");
+                $stmt->execute();
+                $result = $stmt->get_result();
+                
+                $movements = [];
+                while ($row = $result->fetch_assoc()) {
+                    $movement = formatStockMovement($row);
+                    $movement['productName'] = $row['product_name'];
+                    $movement['userName'] = $row['user_name'] ?? 'Sistema';
+                    $movement['companyName'] = $row['company_name'];
+                    $movement['companyId'] = (int)$row['company_id'];
+                    $movements[] = $movement;
+                }
+                $stmt->close();
+                echo json_encode($movements);
+            } else {
+                // Filter stock movements by company through products table, including product and user names
+                $stmt = $conn->prepare("
+                    SELECT 
+                        sm.*,
+                        p.name as product_name,
+                        u.name as user_name
+                    FROM stock_movements sm
+                    INNER JOIN products p ON sm.product_id = p.id
+                    LEFT JOIN users u ON sm.user_id = u.id
+                    WHERE p.company_id = ?
+                    ORDER BY sm.date DESC
+                ");
+                $stmt->bind_param("i", $companyId);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                
+                $movements = [];
+                while ($row = $result->fetch_assoc()) {
+                    $movement = formatStockMovement($row);
+                    // Add product and user names to the movement
+                    $movement['productName'] = $row['product_name'];
+                    $movement['userName'] = $row['user_name'] ?? 'Sistema';
+                    $movements[] = $movement;
+                }
+                $stmt->close();
+                echo json_encode($movements);
             }
-            $stmt->close();
-            echo json_encode($movements);
             break;
             
         case 'POST':

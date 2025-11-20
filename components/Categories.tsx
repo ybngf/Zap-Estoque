@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, User, Product, Role } from '../types';
+import { Category, User, Product, Role, Company } from '../types';
 import * as api from '../services/api';
 import { PencilIcon, TrashIcon, PlusIcon } from './Icons';
 import CSVImporter from './CSVImporter';
@@ -11,24 +11,32 @@ interface CategoriesProps {
 const Categories: React.FC<CategoriesProps> = ({ currentUser }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   
+  const isSuperAdmin = currentUser.role === Role.SuperAdmin;
+  
   useEffect(() => {
     const fetchData = async () => {
         setIsLoading(true);
-        const [categoriesData, productsData] = await Promise.all([
-            api.getCategories(),
-            api.getProducts(),
-        ]);
+        const categoriesData = await api.getCategories();
+        const productsData = await api.getProducts();
         setCategories(categoriesData);
         setProducts(productsData);
+        
+        if (isSuperAdmin) {
+          const companiesData = await api.getCompanies();
+          setCompanies(companiesData);
+        }
+        
         setIsLoading(false);
     };
     fetchData();
-  }, []);
+  }, [isSuperAdmin]);
   
   const handleOpenModal = () => {
     setNewCategoryName('');
@@ -128,11 +136,39 @@ const Categories: React.FC<CategoriesProps> = ({ currentUser }) => {
             </button>
           </div>
         </div>
+        
+        {isSuperAdmin && companies.length > 0 && (
+          <div className="mb-4 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Filtrar por empresa:
+            </label>
+            <select
+              value={selectedCompanyId}
+              onChange={(e) => setSelectedCompanyId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="all">Todas as empresas ({categories.length})</option>
+              {companies.map(company => {
+                const count = categories.filter(cat => cat.companyId === company.id).length;
+                return (
+                  <option key={company.id} value={company.id}>
+                    {company.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
+        
         {isLoading ? (
             <div className="text-center py-8">Carregando categorias...</div>
         ) : (
             <ul className="space-y-3">
             {categories
+                .filter(category => {
+                  if (!isSuperAdmin || selectedCompanyId === 'all') return true;
+                  return category.companyId === selectedCompanyId;
+                })
                 .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
                 .map(category => {
                 const productCount = products.filter(p => p.categoryId === category.id).length;
@@ -140,6 +176,11 @@ const Categories: React.FC<CategoriesProps> = ({ currentUser }) => {
                 <li key={category.id} className="flex justify-between items-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
                     <div className="flex items-center space-x-4">
                     <span className="font-semibold text-gray-800 dark:text-gray-200">{category.name}</span>
+                    {isSuperAdmin && category.companyName && (
+                      <span className="px-2 py-1 text-xs font-medium text-purple-800 bg-purple-100 rounded-full dark:bg-purple-900 dark:text-purple-200">
+                        {category.companyName}
+                      </span>
+                    )}
                     <span className="px-2 py-1 text-xs font-medium text-emerald-800 bg-emerald-100 rounded-full dark:bg-emerald-900 dark:text-emerald-200">
                         {productCount} {productCount === 1 ? 'produto' : 'produtos'}
                     </span>

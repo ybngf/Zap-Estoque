@@ -13,6 +13,7 @@ export interface User {
   role: Role;
   companyId: number;
   avatar: string;
+  active: number; // 1=ativo, 0=desativado
 }
 
 export interface Company {
@@ -20,6 +21,7 @@ export interface Company {
   name: string;
   cnpj?: string;
   address?: string;
+  active: number; // 1=ativa, 0=desativada
 }
 
 export interface Category {
@@ -27,6 +29,7 @@ export interface Category {
   name: string;
   description?: string;
   companyId?: number;
+  companyName?: string; // Added for Super Admin view
 }
 
 export interface Supplier {
@@ -36,6 +39,7 @@ export interface Supplier {
   email?: string;
   phone?: string;
   companyId?: number;
+  companyName?: string; // Added for Super Admin view
 }
 
 export interface Product {
@@ -49,6 +53,7 @@ export interface Product {
   minStock: number;
   imageUrl: string;
   companyId?: number;
+  companyName?: string; // Added for Super Admin view
 }
 
 export enum MovementType {
@@ -67,6 +72,8 @@ export interface StockMovement {
   userId: number;
   productName?: string; // Added by backend JOIN
   userName?: string;    // Added by backend JOIN
+  companyName?: string; // Added for Super Admin view
+  companyId?: number;   // Added for Super Admin view
 }
 
 export enum ActivityAction {

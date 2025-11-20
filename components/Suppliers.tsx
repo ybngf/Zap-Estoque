@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Supplier, User, Product, Role } from '../types';
+import { Supplier, User, Product, Role, Company } from '../types';
 import * as api from '../services/api';
 import { PencilIcon, TrashIcon, PlusIcon } from './Icons';
 import CSVImporter from './CSVImporter';
@@ -11,6 +11,8 @@ interface SuppliersProps {
 const Suppliers: React.FC<SuppliersProps> = ({ currentUser }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -21,20 +23,26 @@ const Suppliers: React.FC<SuppliersProps> = ({ currentUser }) => {
     phone: '',
   };
   const [newSupplier, setNewSupplier] = useState<Omit<Supplier, 'id'>>(initialNewSupplierState);
+  
+  const isSuperAdmin = currentUser.role === Role.SuperAdmin;
 
   useEffect(() => {
       const fetchData = async () => {
           setIsLoading(true);
-          const [suppliersData, productsData] = await Promise.all([
-              api.getSuppliers(),
-              api.getProducts(),
-          ]);
+          const suppliersData = await api.getSuppliers();
+          const productsData = await api.getProducts();
           setSuppliers(suppliersData);
           setProducts(productsData);
+          
+          if (isSuperAdmin) {
+            const companiesData = await api.getCompanies();
+            setCompanies(companiesData);
+          }
+          
           setIsLoading(false);
       };
       fetchData();
-  }, []);
+  }, [isSuperAdmin]);
 
   const handleOpenModal = () => {
     setNewSupplier(initialNewSupplierState);
@@ -146,11 +154,36 @@ const Suppliers: React.FC<SuppliersProps> = ({ currentUser }) => {
             </button>
           </div>
         </div>
+        
+        {isSuperAdmin && companies.length > 0 && (
+          <div className="mb-4 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Filtrar por empresa:
+            </label>
+            <select
+              value={selectedCompanyId}
+              onChange={(e) => setSelectedCompanyId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="all">Todas as empresas ({suppliers.length})</option>
+              {companies.map(company => {
+                const count = suppliers.filter(sup => sup.companyId === company.id).length;
+                return (
+                  <option key={company.id} value={company.id}>
+                    {company.name} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
+        
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
                 <th className="py-3 px-4 font-medium">Nome</th>
+                {isSuperAdmin && <th className="py-3 px-4 font-medium">Empresa</th>}
                 <th className="py-3 px-4 font-medium">Contato</th>
                 <th className="py-3 px-4 font-medium">Email</th>
                 <th className="py-3 px-4 font-medium">Telefone</th>
@@ -160,14 +193,27 @@ const Suppliers: React.FC<SuppliersProps> = ({ currentUser }) => {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {isLoading ? (
-                  <tr><td colSpan={6} className="text-center py-8">Carregando fornecedores...</td></tr>
+                  <tr><td colSpan={isSuperAdmin ? 7 : 6} className="text-center py-8">Carregando fornecedores...</td></tr>
               ) : suppliers
+                  .filter(supplier => {
+                    if (!isSuperAdmin || selectedCompanyId === 'all') return true;
+                    return supplier.companyId === selectedCompanyId;
+                  })
                   .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
                   .map(supplier => {
                   const productCount = products.filter(p => p.supplierId === supplier.id).length;
                   return (
                     <tr key={supplier.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="py-3 px-4 font-semibold text-gray-800 dark:text-gray-200">{supplier.name}</td>
+                        {isSuperAdmin && (
+                          <td className="py-3 px-4">
+                            {supplier.companyName && (
+                              <span className="px-2 py-1 text-xs font-medium text-purple-800 bg-purple-100 rounded-full dark:bg-purple-900 dark:text-purple-200">
+                                {supplier.companyName}
+                              </span>
+                            )}
+                          </td>
+                        )}
                         <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{supplier.contactPerson}</td>
                         <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{supplier.email}</td>
                         <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{supplier.phone}</td>

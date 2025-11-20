@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Product, User, Category, Supplier, MovementType, Role } from '../types';
+import { Product, User, Category, Supplier, MovementType, Role, Company } from '../types';
 import * as api from '../services/api';
 import { PencilIcon, TrashIcon, PlusIcon } from './Icons';
 import CSVImporter from './CSVImporter';
@@ -12,16 +12,20 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
+  const isSuperAdmin = currentUser.role === Role.SuperAdmin;
+  
   // Filtros avançados
   const [filterCategory, setFilterCategory] = useState<number | ''>('');
   const [filterSupplier, setFilterSupplier] = useState<number | ''>('');
   const [filterStockLevel, setFilterStockLevel] = useState<'all' | 'low' | 'ok' | 'high'>('all');
+  const [filterCompany, setFilterCompany] = useState<number | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   // Estado do modal de impressão
@@ -514,11 +518,9 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
       setIsLoading(true);
       setError(null);
       try {
-        const [productsData, categoriesData, suppliersData] = await Promise.all([
-          api.getProducts(),
-          api.getCategories(),
-          api.getSuppliers(),
-        ]);
+        const productsData = await api.getProducts();
+        const categoriesData = await api.getCategories();
+        const suppliersData = await api.getSuppliers();
         
         console.log('Products:', productsData);
         console.log('Categories:', categoriesData);
@@ -527,6 +529,12 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
         setProducts(productsData || []);
         setCategories(categoriesData || []);
         setSuppliers(suppliersData || []);
+        
+        // Se for Super Admin, carregar empresas também
+        if (isSuperAdmin) {
+          const companiesData = await api.getCompanies();
+          setCompanies(companiesData || []);
+        }
         
         if (categoriesData && categoriesData.length > 0 && suppliersData && suppliersData.length > 0) {
           setProductForm(prev => ({
@@ -543,7 +551,7 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
       }
     };
     fetchData();
-  }, []);
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     if (editingProduct) {
@@ -568,6 +576,9 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
     // Filtro por fornecedor
     const matchesSupplier = filterSupplier === '' || p.supplierId === filterSupplier;
     
+    // Filtro por empresa (apenas para Super Admin)
+    const matchesCompany = !isSuperAdmin || filterCompany === 'all' || p.companyId === filterCompany;
+    
     // Filtro por nível de estoque
     let matchesStockLevel = true;
     if (filterStockLevel === 'low') {
@@ -578,7 +589,7 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
       matchesStockLevel = p.stock > p.minStock * 2;
     }
     
-    return matchesSearch && matchesCategory && matchesSupplier && matchesStockLevel;
+    return matchesSearch && matchesCategory && matchesSupplier && matchesStockLevel && matchesCompany;
   }).sort((a, b) => 
     // Ordenar alfabeticamente por nome
     a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
@@ -588,6 +599,7 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
     setSearchTerm('');
     setFilterCategory('');
     setFilterSupplier('');
+    setFilterCompany('all');
     setFilterStockLevel('all');
   };
 
@@ -816,6 +828,30 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
                   <option value="high">🟢 Estoque Alto (&gt; 2x mínimo)</option>
                 </select>
               </div>
+
+              {/* Filtro por Empresa (apenas para Super Admin) */}
+              {isSuperAdmin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    🏭 Empresa
+                  </label>
+                  <select
+                    value={filterCompany}
+                    onChange={(e) => setFilterCompany(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="all">Todas as empresas ({products.length})</option>
+                    {companies.map(company => {
+                      const count = products.filter(p => p.companyId === company.id).length;
+                      return (
+                        <option key={company.id} value={company.id}>
+                          {company.name} ({count})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Resumo dos Filtros */}
@@ -843,6 +879,7 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
                 <th className="py-3 px-4 font-medium">Produto</th>
                 <th className="py-3 px-4 font-medium">SKU</th>
                 <th className="py-3 px-4 font-medium">Categoria</th>
+                {isSuperAdmin && <th className="py-3 px-4 font-medium">Empresa</th>}
                 <th className="py-3 px-4 font-medium text-right">Preço</th>
                 <th className="py-3 px-4 font-medium text-right">Estoque</th>
                 <th className="py-3 px-4 font-medium text-center">Ajuste Rápido</th>
@@ -867,6 +904,13 @@ const Products: React.FC<ProductsProps> = ({ currentUser }) => {
                           <td className="py-3 px-4 font-semibold text-gray-800 dark:text-gray-200">{product.name}</td>
                           <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{product.sku}</td>
                           <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{category?.name}</td>
+                          {isSuperAdmin && (
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-xs font-medium">
+                                {product.companyName || 'N/A'}
+                              </span>
+                            </td>
+                          )}
                           <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">R$ {product.price.toFixed(2)}</td>
                           <td className={`py-3 px-4 text-right font-bold ${isLowStock ? 'text-red-500' : 'text-green-500'}`}>
                               {product.stock}
